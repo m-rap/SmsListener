@@ -57,7 +57,8 @@ public class SmsDb {
             return res.toArray(new String[res.size()][]);
         }
 
-        Cursor c = db.query("sms", new String[]{"sms_number", "sms_message", "sms_timems"}, null, null, null, null, null);
+        Cursor c = db.query("sms", new String[]{"sms_number", "sms_message", "sms_timems"},
+                null, null, null, null, "sms_timems DESC");
 
         if (!c.moveToFirst()) {
             c.close();
