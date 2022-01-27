@@ -21,11 +21,11 @@ public class SmsDb {
             @Override
             public void onCreate(SQLiteDatabase db) {
                 db.execSQL("" +
-                        "CREATE TABLE IF NOT EXISTS sms (" +
-                        "sms_id INTEGER PRIMARY KEY AUTOINCREMENT," +
-                        "sms_number TEXT," +
-                        "sms_message TEXT," +
-                        "sms_timems INTEGER" +
+                        "CREATE TABLE IF NOT EXISTS sms (\n" +
+                        "   sms_id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+                        "   sms_number TEXT,\n" +
+                        "   sms_message TEXT,\n" +
+                        "   sms_timems INTEGER\n" +
                         ")");
             }
 
