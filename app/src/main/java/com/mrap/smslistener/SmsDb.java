@@ -80,6 +80,31 @@ public class SmsDb {
         return res.toArray(new String[res.size()][]);
     }
 
+    public String[][] getSmss(String number) {
+        Cursor c = db.query("sms", new String[]{"sms_number", "sms_message", "sms_timems"},
+                "sms_number='" + number + "'", null, null, null, null);
+        if (!c.moveToFirst()) {
+            c.close();
+            return new String[0][];
+        }
+
+        ArrayList<String[]> res = new ArrayList<>();
+
+        int numIdx = c.getColumnIndex("sms_number");
+        int msgIdx = c.getColumnIndex("sms_message");
+        int timeIdx = c.getColumnIndex("sms_timems");
+        do {
+            String[] row = {
+                    c.getString(numIdx),
+                    c.getString(msgIdx),
+                    sdf.format(new Date(c.getLong(timeIdx)))};
+            res.add(row);
+        } while (c.moveToNext());
+
+        c.close();
+        return res.toArray(new String[res.size()][]);
+    }
+
     public void close() {
         if (db == null) {
             Log.e(TAG, "db is not opened");

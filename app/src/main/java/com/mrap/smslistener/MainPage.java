@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -21,6 +22,7 @@ import java.util.concurrent.Executors;
 
 public class MainPage extends Fragment {
 
+    private static final String TAG = "MainPage";
     ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @Nullable
@@ -31,6 +33,8 @@ public class MainPage extends Fragment {
 
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
+        MainActivity activity = (MainActivity) getActivity();
+        activity.getSupportActionBar().setTitle("Sms Listener");
         BroadcastReceiver smsUIReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -62,14 +66,24 @@ public class MainPage extends Fragment {
                 String[] sms = smss[i];
 
                 View viewSms = views[i];
-                viewSms.setClickable(true);
-                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-                layoutParams.topMargin = layoutParams.rightMargin = layoutParams.leftMargin =
-                        (int)activity.convertDipToPix(activity, 10);
-                if (i == smss.length - 1) {
-                    layoutParams.bottomMargin = (int)activity.convertDipToPix(activity, 10);
-                }
-                viewSms.setLayoutParams(layoutParams);
+                viewSms.setOnClickListener(v -> {
+                    ChatPage chatPage = new ChatPage();
+                    Bundle args = new Bundle();
+                    args.putString("number", sms[0]);
+                    chatPage.setArguments(args);
+                    activity.getSupportFragmentManager().
+                            beginTransaction().
+                            replace(R.id.actmain_framelayout, chatPage, null).
+                            addToBackStack(null).
+                            commit();
+                });
+//                LinearLayout.LayoutParams layoutParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+//                layoutParams.topMargin = layoutParams.rightMargin = layoutParams.leftMargin =
+//                        (int)activity.convertDipToPix(activity, 10);
+//                if (i == smss.length - 1) {
+//                    layoutParams.bottomMargin = (int)activity.convertDipToPix(activity, 10);
+//                }
+//                viewSms.setLayoutParams(layoutParams);
 
                 TextView numTv = viewSms.findViewById(R.id.idxrow_address);
                 numTv.setText(sms[0] + ", " + sms[2]);
@@ -79,6 +93,7 @@ public class MainPage extends Fragment {
 
 //            Log.d(TAG, sms[0] + ":::" + sms[1]);
 
+//                Log.d(TAG, "add view " + i + " to list");
                 listSms.addView(viewSms);
             }
         });
@@ -92,9 +107,11 @@ public class MainPage extends Fragment {
             String[][] smss = smsDb.getSmss();
             smsDb.close();
 
+            Log.d(TAG, "loaded sms " + smss.length);
+
             View[] views = new View[smss.length];
             for (int i = 0; i < smss.length; i++) {
-                views[i] = (LinearLayout) activity.getLayoutInflater().
+                views[i] = activity.getLayoutInflater().
                         inflate(R.layout.view_sms_index_row, null);
             }
 
