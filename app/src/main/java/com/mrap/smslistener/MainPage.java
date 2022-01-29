@@ -17,6 +17,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
@@ -52,7 +53,7 @@ public class MainPage extends Fragment {
         refresh();
     }
 
-    private void renderSmss(String[][] smss, View[] views) {
+    private void renderSmss(ArrayList<String[]> smss, View[] views) {
         MainActivity activity = (MainActivity) getActivity();
         activity.runOnUiThread(() -> {
             View view = getView();
@@ -62,8 +63,8 @@ public class MainPage extends Fragment {
 
 //            Context themedCtx = new ContextThemeWrapper(activity, R.style.Theme_SmsListener);
 
-            for (int i = 0; i < smss.length; i++) {
-                String[] sms = smss[i];
+            for (int i = 0; i < smss.size(); i++) {
+                String[] sms = smss.get(i);
 
                 View viewSms = views[i];
                 viewSms.setOnClickListener(v -> {
@@ -104,13 +105,13 @@ public class MainPage extends Fragment {
             MainActivity activity = (MainActivity) getActivity();
             SmsDb smsDb = new SmsDb();
             smsDb.openDb(activity);
-            String[][] smss = smsDb.getSmss();
+            ArrayList<String[]> smss = smsDb.getLastSmss();
             smsDb.close();
 
-            Log.d(TAG, "loaded sms " + smss.length);
+            Log.d(TAG, "loaded sms " + smss.size());
 
-            View[] views = new View[smss.length];
-            for (int i = 0; i < smss.length; i++) {
+            View[] views = new View[smss.size()];
+            for (int i = 0; i < smss.size(); i++) {
                 views[i] = activity.getLayoutInflater().
                         inflate(R.layout.view_sms_index_row, null);
             }

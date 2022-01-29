@@ -50,11 +50,11 @@ public class SmsDb {
         db.insert("sms", null, contentValues);
     }
 
-    public String[][] getSmss() {
+    public ArrayList<String[]> getSmss() {
         ArrayList<String[]> res = new ArrayList<>();
         if (db == null) {
             Log.e(TAG, "db is not opened");
-            return res.toArray(new String[res.size()][]);
+            return res;
         }
 
         Cursor c = db.query("sms", new String[]{"sms_number", "sms_message", "sms_timems"},
@@ -62,7 +62,7 @@ public class SmsDb {
 
         if (!c.moveToFirst()) {
             c.close();
-            return res.toArray(new String[res.size()][]);
+            return res;
         }
 
         int numIdx = c.getColumnIndex("sms_number");
@@ -77,18 +77,18 @@ public class SmsDb {
         } while (c.moveToNext());
 
         c.close();
-        return res.toArray(new String[res.size()][]);
+        return res;
     }
 
-    public String[][] getSmss(String number) {
+    public ArrayList<String[]> getSmss(String number) {
+        ArrayList<String[]> res = new ArrayList<>();
+
         Cursor c = db.query("sms", new String[]{"sms_number", "sms_message", "sms_timems"},
                 "sms_number='" + number + "'", null, null, null, null);
         if (!c.moveToFirst()) {
             c.close();
-            return new String[0][];
+            return res;
         }
-
-        ArrayList<String[]> res = new ArrayList<>();
 
         int numIdx = c.getColumnIndex("sms_number");
         int msgIdx = c.getColumnIndex("sms_message");
@@ -102,7 +102,37 @@ public class SmsDb {
         } while (c.moveToNext());
 
         c.close();
-        return res.toArray(new String[res.size()][]);
+        return res;
+    }
+
+    public ArrayList<String[]> getLastSmss() {
+        ArrayList<String[]> res = new ArrayList<>();
+
+        Cursor c = db.rawQuery("" +
+                "SELECT s2.* FROM (\n" +
+                "   SELECT sms_number, MAX(sms_timems) as max_timems FROM sms GROUP BY sms_number\n" +
+                ") s1 INNER JOIN sms s2 ON s1.sms_number=s2.sms_number AND \n" +
+                "s1.max_timems=s2.sms_timems", null);
+
+        if (!c.moveToFirst()) {
+            c.close();
+            return res;
+        }
+
+        int numIdx = c.getColumnIndex("sms_number");
+        int msgIdx = c.getColumnIndex("sms_message");
+        int timeIdx = c.getColumnIndex("sms_timems");
+        do {
+            String[] row = {
+                    c.getString(numIdx),
+                    c.getString(msgIdx),
+                    sdf.format(new Date(c.getLong(timeIdx)))};
+            res.add(row);
+        } while (c.moveToNext());
+
+        c.close();
+
+        return res;
     }
 
     public void close() {
