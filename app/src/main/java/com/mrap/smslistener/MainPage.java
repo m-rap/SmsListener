@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Bundle;
+import android.provider.Telephony;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
@@ -17,6 +18,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -51,9 +53,32 @@ public class MainPage extends Fragment {
         getActivity().registerReceiver(smsUIReceiver, intentFilter);
 
         refresh();
+
+        executorService.submit(() -> {
+            SmsDb smsDb = new SmsDb();
+            smsDb.openDb(activity);
+            ArrayList<SmsDb.Sms> dbSmss = smsDb.getSmss();
+            ArrayList<SmsDb.Sms> matchedSmss = smsDb.getSmssFromContentResolver(dbSmss);
+
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
+
+            String info = "Db smss (" + dbSmss.size() + "): \n";
+            for (SmsDb.Sms sms : dbSmss) {
+                info += sms.addr + ":" + sms.date + ": ==" + sms.body + "==\n";
+            }
+
+            Log.d(TAG, info);
+
+            info = "Matched smss (" + matchedSmss.size() + "): \n";
+            for (SmsDb.Sms sms : matchedSmss) {
+                info += sms.addr + ":" + sms.date + ": ==" + sms.body + "==\n";
+            }
+
+            Log.d(TAG, info);
+        });
     }
 
-    private void renderSmss(ArrayList<String[]> smss, View[] views) {
+    private void renderSmss(ArrayList<SmsDb.Sms> smss, View[] views) {
         MainActivity activity = (MainActivity) getActivity();
         activity.runOnUiThread(() -> {
             View view = getView();
@@ -63,14 +88,16 @@ public class MainPage extends Fragment {
 
 //            Context themedCtx = new ContextThemeWrapper(activity, R.style.Theme_SmsListener);
 
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm");
+
             for (int i = 0; i < smss.size(); i++) {
-                String[] sms = smss.get(i);
+                SmsDb.Sms sms = smss.get(i);
 
                 View viewSms = views[i];
                 viewSms.setOnClickListener(v -> {
                     ChatPage chatPage = new ChatPage();
                     Bundle args = new Bundle();
-                    args.putString("number", sms[0]);
+                    args.putString("number", sms.addr);
                     chatPage.setArguments(args);
                     activity.getSupportFragmentManager().
                             beginTransaction().
@@ -87,10 +114,10 @@ public class MainPage extends Fragment {
 //                viewSms.setLayoutParams(layoutParams);
 
                 TextView numTv = viewSms.findViewById(R.id.idxrow_address);
-                numTv.setText(sms[0] + ", " + sms[2]);
+                numTv.setText(sms.addr + ", " + sdf.format(sms.date));
 
                 TextView msgTv = viewSms.findViewById(R.id.idxrow_content);
-                msgTv.setText(sms[1]);
+                msgTv.setText(sms.body);
 
 //            Log.d(TAG, sms[0] + ":::" + sms[1]);
 
@@ -105,7 +132,7 @@ public class MainPage extends Fragment {
             MainActivity activity = (MainActivity) getActivity();
             SmsDb smsDb = new SmsDb();
             smsDb.openDb(activity);
-            ArrayList<String[]> smss = smsDb.getLastSmss();
+            ArrayList<SmsDb.Sms> smss = smsDb.getLastSmss();
             smsDb.close();
 
             Log.d(TAG, "loaded sms " + smss.size());

@@ -14,6 +14,14 @@ import java.util.ArrayList;
 import java.util.Date;
 
 public class SmsDb {
+
+    public static class Sms {
+        long date;
+        String addr;
+        String body;
+        int type;
+    }
+
     private SQLiteDatabase db = null;
     private static String TAG = "SmsDb";
     private SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
@@ -54,8 +62,8 @@ public class SmsDb {
         db.insert("sms", null, contentValues);
     }
 
-    public ArrayList<String[]> getSmss() {
-        ArrayList<String[]> res = new ArrayList<>();
+    public ArrayList<Sms> getSmss() {
+        ArrayList<Sms> res = new ArrayList<>();
         if (db == null) {
             Log.e(TAG, "db is not opened");
             return res;
@@ -69,14 +77,16 @@ public class SmsDb {
             return res;
         }
 
-        int numIdx = c.getColumnIndex("sms_number");
-        int msgIdx = c.getColumnIndex("sms_message");
+        int addrIdx = c.getColumnIndex("sms_number");
+        int bodyIdx = c.getColumnIndex("sms_message");
         int timeIdx = c.getColumnIndex("sms_timems");
         do {
-            String[] row = {
-                    c.getString(numIdx),
-                    c.getString(msgIdx),
-                    sdf.format(new Date(c.getLong(timeIdx)))};
+            Sms row = new Sms() {{
+                date = c.getLong(timeIdx);
+                addr = c.getString(addrIdx);
+                body = c.getString(bodyIdx);
+                type = Telephony.Sms.MESSAGE_TYPE_INBOX;
+            }};
             res.add(row);
         } while (c.moveToNext());
 
@@ -84,24 +94,27 @@ public class SmsDb {
         return res;
     }
 
-    public ArrayList<String[]> getSmss(String number) {
-        ArrayList<String[]> res = new ArrayList<>();
+    public ArrayList<Sms> getSmss(String number) {
+        ArrayList<Sms> res = new ArrayList<>();
 
         Cursor c = db.query("sms", new String[]{"sms_number", "sms_message", "sms_timems"},
-                "sms_number='" + number + "'", null, null, null, null);
+                "sms_number='" + number + "'", null, null, null,
+                "sms_timems DESC");
         if (!c.moveToFirst()) {
             c.close();
             return res;
         }
 
-        int numIdx = c.getColumnIndex("sms_number");
-        int msgIdx = c.getColumnIndex("sms_message");
+        int addrIdx = c.getColumnIndex("sms_number");
+        int bodyIdx = c.getColumnIndex("sms_message");
         int timeIdx = c.getColumnIndex("sms_timems");
         do {
-            String[] row = {
-                    c.getString(numIdx),
-                    c.getString(msgIdx),
-                    sdf.format(new Date(c.getLong(timeIdx)))};
+            Sms row = new Sms() {{
+                addr = c.getString(addrIdx);
+                body = c.getString(bodyIdx);
+                date = c.getLong(timeIdx);
+                type = Telephony.Sms.MESSAGE_TYPE_INBOX;
+            }};
             res.add(row);
         } while (c.moveToNext());
 
@@ -109,14 +122,14 @@ public class SmsDb {
         return res;
     }
 
-    public void getSmssFromContentResolver(Context context) {
+    public void getSmssFromContentResolver() {
         ContentResolver cr = context.getContentResolver();
         Cursor c = cr.query(Telephony.Sms.CONTENT_URI, null, null, null, null);
-        int totalSMS = 0;
+
         if (c == null) {
             return;
         }
-        totalSMS = c.getCount();
+
         if (!c.moveToFirst()) {
             c.close();
             return;
@@ -127,11 +140,11 @@ public class SmsDb {
         int idxBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY);
         int idxType = c.getColumnIndexOrThrow(Telephony.Sms.TYPE);
 
-        for (int j = 0; j < totalSMS; j++) {
+        do {
             String smsDate = c.getString(idxDate);
             String number = c.getString(idxAddr);
             String body = c.getString(idxBody);
-            Date dateFormat = new Date(Long.valueOf(smsDate));
+            Date dateFormat = new Date(Long.parseLong(smsDate));
             String type;
             switch (Integer.parseInt(c.getString(idxType))) {
                 case Telephony.Sms.MESSAGE_TYPE_INBOX:
@@ -146,15 +159,66 @@ public class SmsDb {
                 default:
                     break;
             }
-
-
-            c.moveToNext();
-        }
+        } while (c.moveToNext());
         c.close();
     }
 
-    public ArrayList<String[]> getLastSmss() {
-        ArrayList<String[]> res = new ArrayList<>();
+    public ArrayList<Sms> getSmssFromContentResolver(ArrayList<Sms> filterSmss) {
+        ArrayList<Sms> res = new ArrayList<>();
+        if (filterSmss.size() == 0) {
+            return res;
+        }
+
+        ContentResolver cr = context.getContentResolver();
+        Cursor c = cr.query(Telephony.Sms.Inbox.CONTENT_URI, null, null,
+                null, Telephony.Sms.DATE + " DESC");
+        if (c == null) {
+            return res;
+        }
+        if (!c.moveToFirst()) {
+            c.close();
+            return res;
+        }
+
+        int idxDate = c.getColumnIndexOrThrow(Telephony.Sms.DATE);
+        int idxAddr = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS);
+        int idxBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY);
+
+        long oldestFilterDate = filterSmss.get(filterSmss.size() - 1).date;
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
+        Log.d(TAG, "fetching content resolver smss (" + c.getCount() + ")");
+        do {
+            if (res.size() == filterSmss.size()) {
+                break;
+            }
+
+            long date = Long.parseLong(c.getString(idxDate));
+            String addr = c.getString(idxAddr);
+            String body = c.getString(idxBody);
+
+//            if (oldestFilterDate-date > 30000) {
+//                break;
+//            }
+
+//            Log.d(TAG, addr + ":" + date + ": ==" + body + "==");
+
+            for (int i = 0; i < filterSmss.size(); i++) {
+                Sms dbSms = filterSmss.get(i);
+                if (Math.abs(dbSms.date-date) < 30000 && dbSms.addr.equals(addr) &&
+                        dbSms.body.equals(body)) {
+                    res.add(dbSms);
+                }
+            }
+        } while (c.moveToNext());
+        c.close();
+        Log.d(TAG, "done fetching content resolver smss");
+
+        return res;
+    }
+
+    public ArrayList<Sms> getLastSmss() {
+        ArrayList<Sms> res = new ArrayList<>();
 
         Cursor c = db.rawQuery("" +
                 "SELECT s2.* FROM (\n" +
@@ -167,14 +231,16 @@ public class SmsDb {
             return res;
         }
 
-        int numIdx = c.getColumnIndex("sms_number");
-        int msgIdx = c.getColumnIndex("sms_message");
+        int addrIdx = c.getColumnIndex("sms_number");
+        int bodyIdx = c.getColumnIndex("sms_message");
         int timeIdx = c.getColumnIndex("sms_timems");
         do {
-            String[] row = {
-                    c.getString(numIdx),
-                    c.getString(msgIdx),
-                    sdf.format(new Date(c.getLong(timeIdx)))};
+            Sms row = new Sms() {{
+                addr = c.getString(addrIdx);
+                body = c.getString(bodyIdx);
+                date = c.getLong(timeIdx);
+                type = Telephony.Sms.MESSAGE_TYPE_INBOX;
+            }};
             res.add(row);
         } while (c.moveToNext());
 

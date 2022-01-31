@@ -15,6 +15,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -35,14 +36,16 @@ public class ChatPage extends Fragment {
         refresh();
     }
 
-    private void renderMsgs(ArrayList<String[]> smss, View[] views) {
+    private void renderMsgs(ArrayList<SmsDb.Sms> smss, View[] views) {
         MainActivity activity = (MainActivity) getActivity();
         activity.runOnUiThread(() -> {
             View view = getView();
             LinearLayout listMsg = view.findViewById(R.id.cht_listChat);
             listMsg.removeAllViews();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm");
+
             for (int i = 0; i < smss.size(); i++) {
-                String[] sms = smss.get(i);
+                SmsDb.Sms sms = smss.get(i);
                 View viewSms = views[i];
 
 //                registerForContextMenu(viewSms);
@@ -50,16 +53,16 @@ public class ChatPage extends Fragment {
 //                    activity.openContextMenu(viewSms);
                     ClipboardManager clipboardManager = (ClipboardManager) activity.
                             getSystemService(Context.CLIPBOARD_SERVICE);
-                    clipboardManager.setPrimaryClip(ClipData.newPlainText(null, sms[1]));
+                    clipboardManager.setPrimaryClip(ClipData.newPlainText(null, sms.body));
                     Toast.makeText(activity, "Copied to clipboard", Toast.LENGTH_SHORT).show();
                     return true;
                 });
 
                 TextView textView = viewSms.findViewById(R.id.msg_txtMsg);
-                textView.setText(sms[1]);
+                textView.setText(sms.body);
 
                 textView = viewSms.findViewById(R.id.msg_txtDate);
-                textView.setText(sms[2]);
+                textView.setText(sdf.format(sms.date));
 
                 listMsg.addView(viewSms);
             }
@@ -72,7 +75,7 @@ public class ChatPage extends Fragment {
 
             SmsDb smsDb = new SmsDb();
             smsDb.openDb(activity);
-            ArrayList<String[]> smss = smsDb.getSmss(getArguments().getString("number"));
+            ArrayList<SmsDb.Sms> smss = smsDb.getSmss(getArguments().getString("number"));
 
             View[] views = new View[smss.size()];
             for (int i = 0; i < smss.size(); i++) {
