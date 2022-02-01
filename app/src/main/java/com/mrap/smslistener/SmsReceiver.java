@@ -30,8 +30,6 @@ public class SmsReceiver extends BroadcastReceiver {
 
         SmsMessage[] smss = new SmsMessage[pdus.length];
 
-        boolean isVersionM = (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M);
-
         SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
         Date now = Calendar.getInstance().getTime();
 
@@ -39,7 +37,7 @@ public class SmsReceiver extends BroadcastReceiver {
         smsDb.openDb(context);
 
         for (int i = 0; i < smss.length; i++) {
-            if (isVersionM) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
                 smss[i] = SmsMessage.createFromPdu((byte[]) pdus[i], format);
             } else {
                 smss[i] = SmsMessage.createFromPdu((byte[]) pdus[i]);
@@ -51,7 +49,7 @@ public class SmsReceiver extends BroadcastReceiver {
 
             Log.d(TAG, "got sms from: " + number);
 
-            smsDb.insertSms(number, message, timestamp);
+            smsDb.insertSms(number, message, timestamp, false);
 
             Notification notification = NotificationFactory.createNotification(context, MainActivity.class, 0, number, message);
             NotificationManager notifManager = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);

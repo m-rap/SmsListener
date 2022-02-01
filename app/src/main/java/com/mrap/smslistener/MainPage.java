@@ -54,28 +54,28 @@ public class MainPage extends Fragment {
 
         refresh();
 
-        executorService.submit(() -> {
-            SmsDb smsDb = new SmsDb();
-            smsDb.openDb(activity);
-            ArrayList<SmsDb.Sms> dbSmss = smsDb.getSmss();
-            ArrayList<SmsDb.Sms> matchedSmss = smsDb.getSmssFromContentResolver(dbSmss);
-
-            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
-
-            String info = "Db smss (" + dbSmss.size() + "): \n";
-            for (SmsDb.Sms sms : dbSmss) {
-                info += sms.addr + ":" + sms.date + ": ==" + sms.body + "==\n";
-            }
-
-            Log.d(TAG, info);
-
-            info = "Matched smss (" + matchedSmss.size() + "): \n";
-            for (SmsDb.Sms sms : matchedSmss) {
-                info += sms.addr + ":" + sms.date + ": ==" + sms.body + "==\n";
-            }
-
-            Log.d(TAG, info);
-        });
+//        executorService.submit(() -> {
+//            SmsDb smsDb = new SmsDb();
+//            smsDb.openDb(activity);
+//            ArrayList<SmsDb.Sms> dbSmss = smsDb.getSmss();
+//            ArrayList<SmsDb.Sms> matchedSmss = smsDb.getSmssFromContentResolver(dbSmss);
+//
+//            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
+//
+//            String info = "Db smss (" + dbSmss.size() + "): \n";
+//            for (SmsDb.Sms sms : dbSmss) {
+//                info += sms.addr + ":" + sms.date + ": ==" + sms.body + "==\n";
+//            }
+//
+//            Log.d(TAG, info);
+//
+//            info = "Matched smss (" + matchedSmss.size() + "): \n";
+//            for (SmsDb.Sms sms : matchedSmss) {
+//                info += sms.addr + ":" + sms.date + ": ==" + sms.body + "==\n";
+//            }
+//
+//            Log.d(TAG, info);
+//        });
     }
 
     private void renderSmss(ArrayList<SmsDb.Sms> smss, View[] views) {
@@ -97,7 +97,7 @@ public class MainPage extends Fragment {
                 viewSms.setOnClickListener(v -> {
                     ChatPage chatPage = new ChatPage();
                     Bundle args = new Bundle();
-                    args.putString("number", sms.addr);
+                    args.putString("addr", sms.addr);
                     chatPage.setArguments(args);
                     activity.getSupportFragmentManager().
                             beginTransaction().
@@ -130,6 +130,7 @@ public class MainPage extends Fragment {
     private void refresh() {
         executorService.submit(() -> {
             MainActivity activity = (MainActivity) getActivity();
+
             SmsDb smsDb = new SmsDb();
             smsDb.openDb(activity);
             ArrayList<SmsDb.Sms> smss = smsDb.getLastSmss();

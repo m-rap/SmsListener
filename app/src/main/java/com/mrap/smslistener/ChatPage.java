@@ -75,7 +75,7 @@ public class ChatPage extends Fragment {
 
             SmsDb smsDb = new SmsDb();
             smsDb.openDb(activity);
-            ArrayList<SmsDb.Sms> smss = smsDb.getSmss(getArguments().getString("number"));
+            ArrayList<SmsDb.Sms> smss = smsDb.getSmss(getArguments().getString("addr"));
 
             View[] views = new View[smss.size()];
             for (int i = 0; i < smss.size(); i++) {
