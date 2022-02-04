@@ -14,7 +14,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 
-public class SmsDb {
+public abstract class SmsModel {
+
+    private static final String TAG = "SmsModel";
 
     public static class Sms {
         long date;
@@ -24,7 +26,7 @@ public class SmsDb {
         boolean read = false;
     }
 
-    private static String onCreateSql_0 = "" +
+    private final static String onCreateSql_0 = "" +
             "CREATE TABLE IF NOT EXISTS sms (\n" +
             "   sms_id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
             "   sms_number TEXT,\n" +
@@ -32,7 +34,7 @@ public class SmsDb {
             "   sms_timems INTEGER\n" +
             ")";
 
-    private static String onCreateSql_1 = "" +
+    private final static String onCreateSql_1 = "" +
             "CREATE TABLE IF NOT EXISTS sms (\n" +
             "   sms_id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
             "   sms_addr TEXT,\n" +
@@ -42,12 +44,7 @@ public class SmsDb {
             ");" +
             "CREATE INDEX IF NOT EXISTS idx_sms_addr ON sms(sms_addr);";
 
-    private static int CURRENT_DB_VER = 1;
-
-    private SQLiteDatabase db = null;
-    private static String TAG = "SmsDb";
-    private SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
-    private Context context;
+    private final static int CURRENT_DB_VER = 1;
 
     public static int checkDbLastUsedVersion(Context context) {
         Log.d(TAG, "checkDbLastUsedVersion");
@@ -113,49 +110,24 @@ public class SmsDb {
             Log.d(TAG, "no db to migrate");
             return;
         }
-        String lastUsedDbFilename;
-        if (lastUsedVer == 0) {
-            lastUsedDbFilename = "sms.db";
-        } else {
-            lastUsedDbFilename = "sms.v" + lastUsedVer + ".db";
-        }
 
-        File dir = context.getExternalFilesDir(null);
-        SQLiteDatabase oldVerDb = new SQLiteOpenHelper(context, dir + "/" +
-                lastUsedDbFilename, null, 1) {
-            @Override
-            public void onCreate(SQLiteDatabase db) {
-            }
-            @Override
-            public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            }
-        }.getReadableDatabase();
+        SQLiteDatabase oldVerDb;
         ArrayList<Sms> smss;
+
         if (lastUsedVer == 0) {
+            oldVerDb = openDb_0(context);
             smss = getSmss_0(oldVerDb);
         } else {
-            oldVerDb.close();
             return;
         }
         oldVerDb.close();
 
-        String newDbFilename = "sms.v" + CURRENT_DB_VER + ".db";
-        SQLiteDatabase newDb = new SQLiteOpenHelper(context, dir + "/" +
-                newDbFilename, null, 1) {
-            @Override
-            public void onCreate(SQLiteDatabase db) {
-                db.execSQL(onCreateSql_1);
-            }
-            @Override
-            public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-            }
-        }.getWritableDatabase();
+        SQLiteDatabase newDb = openDb(context);
         insertSmss(newDb, smss);
         newDb.close();
     }
 
-    public void openDb(Context context) {
-        this.context = context;
+    public static SQLiteDatabase openDb(Context context) {
         SQLiteOpenHelper sqLiteOpenHelper = new SQLiteOpenHelper(context,
                 context.getExternalFilesDir(null) + "/sms.v1.db", null, 1) {
             @Override
@@ -168,29 +140,31 @@ public class SmsDb {
 
             }
         };
-        db = sqLiteOpenHelper.getWritableDatabase();
+        return sqLiteOpenHelper.getWritableDatabase();
     }
 
-    public void insertSms_0(String number, String message, long timestamp) {
-        if (db == null) {
-            Log.e(TAG, "db is not opened");
-            return;
-        }
+    public static SQLiteDatabase openDb_0(Context context) {
+        SQLiteOpenHelper sqLiteOpenHelper = new SQLiteOpenHelper(context,
+                context.getExternalFilesDir(null) + "/sms.db", null, 1) {
+            @Override
+            public void onCreate(SQLiteDatabase db) {
+                db.execSQL(onCreateSql_0);
+            }
 
+            @Override
+            public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+
+            }
+        };
+        return sqLiteOpenHelper.getReadableDatabase();
+    }
+
+    public static void insertSms_0(SQLiteDatabase smsDb, String number, String message, long timestamp) {
         ContentValues contentValues = new ContentValues();
         contentValues.put("sms_number", number);
         contentValues.put("sms_message", message);
         contentValues.put("sms_timems", timestamp);
-        db.insert("sms", null, contentValues);
-    }
-
-    public void insertSms(String number, String message, long timestamp, boolean read) {
-        if (db == null) {
-            Log.e(TAG, "db is not opened");
-            return;
-        }
-
-        insertSms(db, number, message, timestamp, read);
+        smsDb.insert("sms", null, contentValues);
     }
 
     public static void insertSms(
@@ -215,10 +189,6 @@ public class SmsDb {
         }
         smsDb.setTransactionSuccessful();
         smsDb.endTransaction();
-    }
-
-    public ArrayList<Sms> getSmss_0() {
-        return getSmss_0(db);
     }
 
     public static ArrayList<Sms> getSmss_0(SQLiteDatabase smsDb) {
@@ -247,10 +217,6 @@ public class SmsDb {
 
         c.close();
         return res;
-    }
-
-    public ArrayList<Sms> getSmss() {
-        return getSmss(db);
     }
 
     public static ArrayList<Sms> getSmss(SQLiteDatabase smsDb) {
@@ -284,10 +250,6 @@ public class SmsDb {
         return res;
     }
 
-    public ArrayList<Sms> getSmss_0(String number) {
-        return getSmss_0(db, number);
-    }
-
     public static ArrayList<Sms> getSmss_0(SQLiteDatabase smsDb, String number) {
         ArrayList<Sms> res = new ArrayList<>();
 
@@ -314,10 +276,6 @@ public class SmsDb {
 
         c.close();
         return res;
-    }
-
-    public ArrayList<Sms> getSmss(String addr) {
-        return getSmss(db, addr);
     }
 
     public static ArrayList<Sms> getSmss(SQLiteDatabase smsDb, String addr) {
@@ -350,10 +308,6 @@ public class SmsDb {
         return res;
     }
 
-    public ArrayList<Sms> getLastSmss_0() {
-        return getLastSmss_0(db);
-    }
-
     public static ArrayList<Sms> getLastSmss_0(SQLiteDatabase smsDb) {
         ArrayList<Sms> res = new ArrayList<>();
 
@@ -384,10 +338,6 @@ public class SmsDb {
         c.close();
 
         return res;
-    }
-
-    public ArrayList<Sms> getLastSmss() {
-        return getLastSmss(db);
     }
 
     public static ArrayList<Sms> getLastSmss(SQLiteDatabase smsDb) {
@@ -424,7 +374,7 @@ public class SmsDb {
         return res;
     }
 
-    public void getSmssFromContentResolver() {
+    public static void getSmssFromContentResolver(Context context) {
         ContentResolver cr = context.getContentResolver();
         Cursor c = cr.query(Telephony.Sms.CONTENT_URI, null, null, null, null);
 
@@ -465,7 +415,8 @@ public class SmsDb {
         c.close();
     }
 
-    public ArrayList<Sms> getSmssFromContentResolver(ArrayList<Sms> filterSmss) {
+    public static ArrayList<Sms> getSmssFromContentResolver(
+            Context context, ArrayList<Sms> filterSmss) {
         ArrayList<Sms> res = new ArrayList<>();
         if (filterSmss.size() == 0) {
             return res;
@@ -517,14 +468,5 @@ public class SmsDb {
         Log.d(TAG, "done fetching content resolver smss");
 
         return res;
-    }
-
-    public void close() {
-        if (db == null) {
-            Log.e(TAG, "db is not opened");
-            return;
-        }
-
-        db.close();
     }
 }

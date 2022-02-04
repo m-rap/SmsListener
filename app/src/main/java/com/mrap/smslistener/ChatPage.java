@@ -3,6 +3,7 @@ package com.mrap.smslistener;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -36,7 +37,7 @@ public class ChatPage extends Fragment {
         refresh();
     }
 
-    private void renderMsgs(ArrayList<SmsDb.Sms> smss, View[] views) {
+    private void renderMsgs(ArrayList<SmsModel.Sms> smss, View[] views) {
         MainActivity activity = (MainActivity) getActivity();
         activity.runOnUiThread(() -> {
             View view = getView();
@@ -45,7 +46,7 @@ public class ChatPage extends Fragment {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm");
 
             for (int i = 0; i < smss.size(); i++) {
-                SmsDb.Sms sms = smss.get(i);
+                SmsModel.Sms sms = smss.get(i);
                 View viewSms = views[i];
 
 //                registerForContextMenu(viewSms);
@@ -73,9 +74,9 @@ public class ChatPage extends Fragment {
         executorService.submit(() -> {
             MainActivity activity = (MainActivity) getActivity();
 
-            SmsDb smsDb = new SmsDb();
-            smsDb.openDb(activity);
-            ArrayList<SmsDb.Sms> smss = smsDb.getSmss(getArguments().getString("addr"));
+            SQLiteDatabase smsDb = SmsModel.openDb(activity);
+            ArrayList<SmsModel.Sms> smss = SmsModel.getSmss(smsDb, getArguments().getString("addr"));
+            smsDb.close();
 
             View[] views = new View[smss.size()];
             for (int i = 0; i < smss.size(); i++) {

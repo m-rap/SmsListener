@@ -4,10 +4,9 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.provider.Telephony;
 import android.util.Log;
-import android.view.ContextThemeWrapper;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -55,22 +54,22 @@ public class MainPage extends Fragment {
         refresh();
 
 //        executorService.submit(() -> {
-//            SmsDb smsDb = new SmsDb();
+//            SmsModel smsDb = new SmsModel();
 //            smsDb.openDb(activity);
-//            ArrayList<SmsDb.Sms> dbSmss = smsDb.getSmss();
-//            ArrayList<SmsDb.Sms> matchedSmss = smsDb.getSmssFromContentResolver(dbSmss);
+//            ArrayList<SmsModel.Sms> dbSmss = smsDb.getSmss();
+//            ArrayList<SmsModel.Sms> matchedSmss = smsDb.getSmssFromContentResolver(dbSmss);
 //
 //            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd_HHmm");
 //
 //            String info = "Db smss (" + dbSmss.size() + "): \n";
-//            for (SmsDb.Sms sms : dbSmss) {
+//            for (SmsModel.Sms sms : dbSmss) {
 //                info += sms.addr + ":" + sms.date + ": ==" + sms.body + "==\n";
 //            }
 //
 //            Log.d(TAG, info);
 //
 //            info = "Matched smss (" + matchedSmss.size() + "): \n";
-//            for (SmsDb.Sms sms : matchedSmss) {
+//            for (SmsModel.Sms sms : matchedSmss) {
 //                info += sms.addr + ":" + sms.date + ": ==" + sms.body + "==\n";
 //            }
 //
@@ -78,7 +77,7 @@ public class MainPage extends Fragment {
 //        });
     }
 
-    private void renderSmss(ArrayList<SmsDb.Sms> smss, View[] views) {
+    private void renderSmss(ArrayList<SmsModel.Sms> smss, View[] views) {
         MainActivity activity = (MainActivity) getActivity();
         activity.runOnUiThread(() -> {
             View view = getView();
@@ -91,7 +90,7 @@ public class MainPage extends Fragment {
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm");
 
             for (int i = 0; i < smss.size(); i++) {
-                SmsDb.Sms sms = smss.get(i);
+                SmsModel.Sms sms = smss.get(i);
 
                 View viewSms = views[i];
                 viewSms.setOnClickListener(v -> {
@@ -131,9 +130,8 @@ public class MainPage extends Fragment {
         executorService.submit(() -> {
             MainActivity activity = (MainActivity) getActivity();
 
-            SmsDb smsDb = new SmsDb();
-            smsDb.openDb(activity);
-            ArrayList<SmsDb.Sms> smss = smsDb.getLastSmss();
+            SQLiteDatabase smsDb = SmsModel.openDb(activity);
+            ArrayList<SmsModel.Sms> smss = SmsModel.getLastSmss(smsDb);
             smsDb.close();
 
             Log.d(TAG, "loaded sms " + smss.size());
