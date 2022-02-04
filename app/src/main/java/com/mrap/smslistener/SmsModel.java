@@ -222,13 +222,14 @@ public abstract class SmsModel {
     private static String createLimit(int offset, int limit, boolean excludeLimit) {
         String limitStr = null;
         if (limit > 0) {
-            if (excludeLimit) {
+            if (offset > 0) {
                 limitStr = "" + limit;
             } else {
-                limitStr = "LIMIT " + limit;
+                limitStr = offset + "," + limit;
             }
-            if (offset > 0) {
-                limitStr += " OFFSET " + offset;
+            if (excludeLimit) {
+            } else {
+                limitStr = "LIMIT " + limitStr;
             }
         }
         return limitStr;
