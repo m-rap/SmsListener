@@ -219,12 +219,27 @@ public abstract class SmsModel {
         return res;
     }
 
-    public static ArrayList<Sms> getSmss(SQLiteDatabase smsDb) {
+    private static String createLimit(int offset, int limit, boolean excludeLimit) {
+        String limitStr = null;
+        if (limit > 0) {
+            if (excludeLimit) {
+                limitStr = "" + limit;
+            } else {
+                limitStr = "LIMIT " + limit;
+            }
+            if (offset > 0) {
+                limitStr += " OFFSET " + offset;
+            }
+        }
+        return limitStr;
+    }
+
+    public static ArrayList<Sms> getSmss(SQLiteDatabase smsDb, int offset, int limit) {
         ArrayList<Sms> res = new ArrayList<>();
 
         Cursor c = smsDb.query("sms", new String[] {"sms_addr", "sms_body", "sms_timems",
                         "sms_read"}, null, null, null, null,
-                "sms_timems DESC");
+                "sms_timems DESC", createLimit(offset, limit, true));
 
         if (!c.moveToFirst()) {
             c.close();
@@ -278,12 +293,13 @@ public abstract class SmsModel {
         return res;
     }
 
-    public static ArrayList<Sms> getSmss(SQLiteDatabase smsDb, String addr) {
+    public static ArrayList<Sms> getSmss(SQLiteDatabase smsDb, String addr, int offset, int limit) {
         ArrayList<Sms> res = new ArrayList<>();
 
         Cursor c = smsDb.query("sms", new String[] {"sms_addr", "sms_body", "sms_timems",
                         "sms_read"}, "sms_addr='" + addr + "'", null,
-                null, null, "sms_timems DESC");
+                null, null, "sms_timems DESC", createLimit(offset, limit,
+                        true));
         if (!c.moveToFirst()) {
             c.close();
             return res;
@@ -374,9 +390,10 @@ public abstract class SmsModel {
         return res;
     }
 
-    public static void getSmssFromContentResolver(Context context) {
+    public static void getSmssFromContentResolver(Context context, int offset, int limit) {
         ContentResolver cr = context.getContentResolver();
-        Cursor c = cr.query(Telephony.Sms.CONTENT_URI, null, null, null, null);
+        Cursor c = cr.query(Telephony.Sms.CONTENT_URI, null, null,
+                null, null);
 
         if (c == null) {
             return;
@@ -392,6 +409,11 @@ public abstract class SmsModel {
         int idxBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY);
         int idxType = c.getColumnIndexOrThrow(Telephony.Sms.TYPE);
 
+        if (offset > 0) {
+            c.move(offset);
+        }
+
+        int i = 0;
         do {
             String smsDate = c.getString(idxDate);
             String number = c.getString(idxAddr);
@@ -410,6 +432,14 @@ public abstract class SmsModel {
                     break;
                 default:
                     break;
+            }
+
+            i++;
+
+            if (limit > 0) {
+                if (i > limit) {
+                    break;
+                }
             }
         } while (c.moveToNext());
         c.close();

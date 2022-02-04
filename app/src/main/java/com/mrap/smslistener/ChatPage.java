@@ -75,7 +75,8 @@ public class ChatPage extends Fragment {
             MainActivity activity = (MainActivity) getActivity();
 
             SQLiteDatabase smsDb = SmsModel.openDb(activity);
-            ArrayList<SmsModel.Sms> smss = SmsModel.getSmss(smsDb, getArguments().getString("addr"));
+            ArrayList<SmsModel.Sms> smss = SmsModel.getSmss(smsDb,
+                    getArguments().getString("addr"), 0, 1000);
             smsDb.close();
 
             View[] views = new View[smss.size()];
