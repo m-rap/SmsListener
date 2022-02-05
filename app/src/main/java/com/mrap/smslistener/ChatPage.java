@@ -36,7 +36,7 @@ public class ChatPage extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         MainActivity activity = (MainActivity) getActivity();
-        activity.getSupportActionBar().setTitle(getArguments().getString("number"));
+        activity.getSupportActionBar().setTitle(getArguments().getString("addr"));
         refresh();
     }
 
@@ -52,7 +52,7 @@ public class ChatPage extends Fragment {
             listMsg.removeAllViews();
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm");
 
-            for (int i = 0; i < smss.size(); i++) {
+            for (int i = smss.size() - 1; i >= 0; i--) {
                 SmsModel.Sms sms = smss.get(i);
                 View viewSms = views[i];
 
@@ -98,8 +98,10 @@ public class ChatPage extends Fragment {
             MainActivity activity = (MainActivity) getActivity();
 
             SQLiteDatabase smsDb = SmsModel.openDb(activity);
-            ArrayList<SmsModel.Sms> smss = SmsModel.getSmss(smsDb,
-                    getArguments().getString("addr"), 0, 1000);
+//            ArrayList<SmsModel.Sms> smss = SmsModel.getSmss(smsDb,
+//                    getArguments().getString("addr"), 0, 1000);
+            ArrayList<SmsModel.Sms> smss = SmsModel.getSmssFromContentResolver(activity,
+                    getArguments().getString("addr"), 0, 10);
             smsDb.close();
 
             View[] views = new View[smss.size()];

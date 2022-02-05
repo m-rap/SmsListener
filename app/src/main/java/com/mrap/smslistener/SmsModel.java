@@ -12,7 +12,6 @@ import android.util.Log;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Date;
 import java.util.HashSet;
 
 public abstract class SmsModel {
@@ -385,10 +384,10 @@ public abstract class SmsModel {
             return res;
         }
 
-        int addrIdx = c.getColumnIndex("sms_addr");
-        int bodyIdx = c.getColumnIndex("sms_body");
-        int timeIdx = c.getColumnIndex("sms_timems");
-        int readIdx = c.getColumnIndex("sms_read");
+        int idxAddr = c.getColumnIndex("sms_addr");
+        int idxBody = c.getColumnIndex("sms_body");
+        int idxTime = c.getColumnIndex("sms_timems");
+        int idxRead = c.getColumnIndex("sms_read");
 
         int count = 0;
         int offsetCount = 0;
@@ -396,7 +395,7 @@ public abstract class SmsModel {
         HashSet<String> addrSet = new HashSet<>();
 
         do {
-            String rowAddr = c.getString(addrIdx);
+            String rowAddr = c.getString(idxAddr);
             if (addrSet.contains(rowAddr)) {
                 continue;
             }
@@ -408,10 +407,10 @@ public abstract class SmsModel {
 
             Sms row = new Sms() {{
                 addr = rowAddr;
-                body = c.getString(bodyIdx);
-                date = c.getLong(timeIdx);
+                body = c.getString(idxBody);
+                date = c.getLong(idxTime);
                 type = Telephony.Sms.MESSAGE_TYPE_INBOX;
-                read = c.getInt(readIdx) != 0;
+                read = c.getInt(idxRead) != 0;
             }};
             res.add(row);
             addrSet.add(rowAddr);
@@ -428,18 +427,91 @@ public abstract class SmsModel {
         return res;
     }
 
-    public static void getSmssFromContentResolver(Context context, int offset, int limit) {
+    public static ArrayList<Sms> getLastSmssFromContentResolver(
+            Context context, int offset, int limit) {
+        ArrayList<Sms> res = new ArrayList<>();
+
         ContentResolver cr = context.getContentResolver();
-        Cursor c = cr.query(Telephony.Sms.CONTENT_URI, null, null,
-                null, null);
+        Cursor c = cr.query(Telephony.Sms.Inbox.CONTENT_URI, null, null,
+                null, Telephony.Sms.DATE + " DESC");
 
         if (c == null) {
-            return;
+            return res;
         }
 
         if (!c.moveToFirst()) {
             c.close();
-            return;
+            return res;
+        }
+
+        int idxTime = c.getColumnIndexOrThrow(Telephony.Sms.DATE);
+        int idxAddr = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS);
+        int idxBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY);
+//        int idxType = c.getColumnIndexOrThrow(Telephony.Sms.TYPE);
+        int idxRead = c.getColumnIndexOrThrow(Telephony.Sms.READ);
+
+        int count = 0;
+        int offsetCount = 0;
+
+        HashSet<String> addrSet = new HashSet<>();
+
+        do {
+            String rowAddr = c.getString(idxAddr);
+            if (addrSet.contains(rowAddr)) {
+                continue;
+            }
+
+            if (offset > 0 && offsetCount < offset) {
+                offsetCount++;
+                continue;
+            }
+
+            Sms row = new Sms() {{
+                addr = rowAddr;
+                body = c.getString(idxBody);
+                date = c.getLong(idxTime);
+                type = Telephony.Sms.MESSAGE_TYPE_INBOX;
+                read = c.getInt(idxRead) != 0;
+            }};
+            res.add(row);
+            addrSet.add(rowAddr);
+            count++;
+
+            if (limit > 0 && count > limit) {
+                break;
+            }
+
+        } while (c.moveToNext());
+
+        c.close();
+
+        return res;
+    }
+
+    public static ArrayList<Sms> getSmssFromContentResolver(
+            Context context, String addr, int offset, int limit) {
+        return getSmssFromContentResolver(
+                context,
+                Telephony.Sms.ADDRESS + "='" + addr + "'",
+                null,
+                offset, limit);
+    }
+
+    private static ArrayList<Sms> getSmssFromContentResolver(
+            Context context, String selection, String[] selectionArgs, int offset, int limit) {
+        ArrayList<Sms> res = new ArrayList<>();
+
+        ContentResolver cr = context.getContentResolver();
+        Cursor c = cr.query(Telephony.Sms.Inbox.CONTENT_URI, null, selection,
+                null, Telephony.Sms.DATE + " DESC");
+
+        if (c == null) {
+            return res;
+        }
+
+        if (!c.moveToFirst()) {
+            c.close();
+            return res;
         }
 
         int idxDate = c.getColumnIndexOrThrow(Telephony.Sms.DATE);
@@ -453,24 +525,13 @@ public abstract class SmsModel {
 
         int i = 0;
         do {
-            String smsDate = c.getString(idxDate);
-            String number = c.getString(idxAddr);
-            String body = c.getString(idxBody);
-            Date dateFormat = new Date(Long.parseLong(smsDate));
-            String type;
-            switch (Integer.parseInt(c.getString(idxType))) {
-                case Telephony.Sms.MESSAGE_TYPE_INBOX:
-                    type = "inbox";
-                    break;
-                case Telephony.Sms.MESSAGE_TYPE_SENT:
-                    type = "sent";
-                    break;
-                case Telephony.Sms.MESSAGE_TYPE_OUTBOX:
-                    type = "outbox";
-                    break;
-                default:
-                    break;
-            }
+            Sms sms = new Sms() {{
+                date = Long.parseLong(c.getString(idxDate));
+                addr = c.getString(idxAddr);
+                body = c.getString(idxBody);
+                type = Integer.parseInt(c.getString(idxType));
+            }};
+            res.add(sms);
 
             i++;
 
@@ -481,6 +542,8 @@ public abstract class SmsModel {
             }
         } while (c.moveToNext());
         c.close();
+
+        return res;
     }
 
     public static ArrayList<Sms> getSmssFromContentResolver(
