@@ -428,18 +428,28 @@ public abstract class SmsModel {
     }
 
     public static ArrayList<Sms> getLastSmssFromContentResolver(
-            Context context, int offset, int limit) {
+            Context context, int offset, int limit) throws Exception {
         ArrayList<Sms> res = new ArrayList<>();
 
+        long startMs = System.currentTimeMillis();
+
         ContentResolver cr = context.getContentResolver();
+
+        // 346ms 671row
         Cursor c = cr.query(Telephony.Sms.Inbox.CONTENT_URI, null, null,
                 null, Telephony.Sms.DATE + " DESC");
 
+        // fail
+//        Cursor c = cr.query(Telephony.Sms.Conversations.CONTENT_URI, null, null,
+//                null, Telephony.Sms.DATE + " DESC");
+
         if (c == null) {
+            Log.d(TAG, "load fail");
             return res;
         }
 
         if (!c.moveToFirst()) {
+            Log.d(TAG, "load fail");
             c.close();
             return res;
         }
@@ -484,6 +494,8 @@ public abstract class SmsModel {
         } while (c.moveToNext());
 
         c.close();
+
+        Log.d(TAG, "loaded in " + (System.currentTimeMillis() - startMs) + " ms");
 
         return res;
     }

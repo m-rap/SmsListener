@@ -130,21 +130,27 @@ public class MainPage extends Fragment {
         executorService.submit(() -> {
             MainActivity activity = (MainActivity) getActivity();
 
-            SQLiteDatabase smsDb = SmsModel.openDb(activity);
+            try {
+                SQLiteDatabase smsDb = SmsModel.openDb(activity);
 //            ArrayList<SmsModel.Sms> smss = SmsModel.getLastSmss(smsDb, 0, 1000);
-            ArrayList<SmsModel.Sms> smss = SmsModel.getLastSmssFromContentResolver(activity,
-                    0, 10);
-            smsDb.close();
+                ArrayList<SmsModel.Sms> smss = SmsModel.getLastSmssFromContentResolver(activity,
+                        0, 1000);
+                smsDb.close();
 
-            Log.d(TAG, "loaded sms " + smss.size());
+                Log.d(TAG, "loaded sms " + smss.size());
 
-            View[] views = new View[smss.size()];
-            for (int i = 0; i < smss.size(); i++) {
-                views[i] = activity.getLayoutInflater().
-                        inflate(R.layout.view_sms_index_row, null);
+                long startMs = System.currentTimeMillis();
+                View[] views = new View[smss.size()];
+                for (int i = 0; i < smss.size(); i++) {
+                    views[i] = activity.getLayoutInflater().
+                            inflate(R.layout.view_sms_index_row, null);
+                }
+                Log.d(TAG, "inflated views for " + (System.currentTimeMillis() - startMs) + " ms");
+
+                renderSmss(smss, views);
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-
-            renderSmss(smss, views);
         });
     }
 }

@@ -104,10 +104,12 @@ public class ChatPage extends Fragment {
                     getArguments().getString("addr"), 0, 10);
             smsDb.close();
 
+            long startMs = System.currentTimeMillis();
             View[] views = new View[smss.size()];
             for (int i = 0; i < smss.size(); i++) {
                 views[i] = activity.getLayoutInflater().inflate(R.layout.view_message, null);
             }
+            Log.d(TAG, "inflated views for " + (System.currentTimeMillis() - startMs) + " ms");
 
             renderMsgs(smss, views);
         });
