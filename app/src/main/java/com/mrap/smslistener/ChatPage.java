@@ -44,7 +44,11 @@ public class ChatPage extends Fragment {
         MainActivity activity = (MainActivity) getActivity();
         activity.runOnUiThread(() -> {
             View view = getView();
+            LinearLayout container = view.findViewById(R.id.cht_container);
             LinearLayout listMsg = view.findViewById(R.id.cht_listChat);
+
+            container.setVisibility(View.INVISIBLE);
+
             listMsg.removeAllViews();
             SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm");
 
@@ -72,21 +76,19 @@ public class ChatPage extends Fragment {
             }
 
             listMsg.post(() -> {
-                LinearLayout container = view.findViewById(R.id.cht_container);
                 NestedScrollView scrollView = view.findViewById(R.id.cht_scrollView);
                 LinearLayout.LayoutParams scrollViewLp = (LinearLayout.LayoutParams) scrollView.getLayoutParams();
                 int scrollViewBotMargin = scrollViewLp.bottomMargin;
                 int listMsgHeight = listMsg.getHeight();
                 int contianerHeight = container.getHeight() - scrollViewBotMargin;
                 int scrollViewHeight = scrollView.getHeight();
-                Log.d(TAG, "listH " + listMsgHeight + " containerH " + contianerHeight +
-                        " scrollViewH " + scrollViewHeight);
                 if (listMsgHeight < contianerHeight) {
                     scrollViewLp.height = listMsgHeight;
                     scrollView.setLayoutParams(scrollViewLp);
                 } else {
                     scrollView.scrollTo(0, listMsgHeight);
                 }
+                container.setVisibility(View.VISIBLE);
             });
         });
     }
