@@ -13,6 +13,7 @@ import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashSet;
 
 public abstract class SmsModel {
 
@@ -357,14 +358,27 @@ public abstract class SmsModel {
         return res;
     }
 
-    public static ArrayList<Sms> getLastSmss(SQLiteDatabase smsDb) {
+    private static boolean listContainsAddr(ArrayList<Sms> list, String addr) {
+        for (Sms sms : list) {
+            if (sms.addr.equals(addr)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    public static ArrayList<Sms> getLastSmss(SQLiteDatabase smsDb, int offset, int limit) {
         ArrayList<Sms> res = new ArrayList<>();
 
-        Cursor c = smsDb.rawQuery("" +
-                "SELECT s2.* FROM (\n" +
-                "   SELECT sms_addr, MAX(sms_timems) as max_timems FROM sms GROUP BY sms_addr\n" +
-                ") s1 INNER JOIN sms s2 ON s1.sms_addr=s2.sms_addr AND \n" +
-                "s1.max_timems=s2.sms_timems ORDER BY s2.sms_timems DESC", null);
+//        Cursor c = smsDb.rawQuery("" +
+//                "SELECT s2.* FROM (\n" +
+//                "   SELECT sms_addr, MAX(sms_timems) as max_timems FROM sms GROUP BY sms_addr\n" +
+//                ") s1 INNER JOIN sms s2 ON s1.sms_addr=s2.sms_addr AND \n" +
+//                "s1.max_timems=s2.sms_timems ORDER BY s2.sms_timems DESC", null);
+
+        Cursor c = smsDb.query("sms", new String[] {"sms_addr", "sms_body", "sms_timems",
+                        "sms_read"}, null, null, null, null,
+                "sms_timems DESC");
 
         if (!c.moveToFirst()) {
             c.close();
@@ -375,15 +389,38 @@ public abstract class SmsModel {
         int bodyIdx = c.getColumnIndex("sms_body");
         int timeIdx = c.getColumnIndex("sms_timems");
         int readIdx = c.getColumnIndex("sms_read");
+
+        int count = 0;
+        int offsetCount = 0;
+
+        HashSet<String> addrSet = new HashSet<>();
+
         do {
+            String rowAddr = c.getString(addrIdx);
+            if (addrSet.contains(rowAddr)) {
+                continue;
+            }
+
+            if (offset > 0 && offsetCount < offset) {
+                offsetCount++;
+                continue;
+            }
+
             Sms row = new Sms() {{
-                addr = c.getString(addrIdx);
+                addr = rowAddr;
                 body = c.getString(bodyIdx);
                 date = c.getLong(timeIdx);
                 type = Telephony.Sms.MESSAGE_TYPE_INBOX;
                 read = c.getInt(readIdx) != 0;
             }};
             res.add(row);
+            addrSet.add(rowAddr);
+            count++;
+
+            if (limit > 0 && count > limit) {
+                break;
+            }
+
         } while (c.moveToNext());
 
         c.close();

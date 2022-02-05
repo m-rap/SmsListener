@@ -5,6 +5,7 @@ import android.content.ClipboardManager;
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -14,6 +15,7 @@ import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.core.widget.NestedScrollView;
 import androidx.fragment.app.Fragment;
 
 import java.text.SimpleDateFormat;
@@ -22,6 +24,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ChatPage extends Fragment {
+    private static final String TAG = "ChatPage";
     ExecutorService executorService = Executors.newSingleThreadExecutor();
 
     @Nullable
@@ -67,6 +70,24 @@ public class ChatPage extends Fragment {
 
                 listMsg.addView(viewSms);
             }
+
+            listMsg.post(() -> {
+                LinearLayout container = view.findViewById(R.id.cht_container);
+                NestedScrollView scrollView = view.findViewById(R.id.cht_scrollView);
+                LinearLayout.LayoutParams scrollViewLp = (LinearLayout.LayoutParams) scrollView.getLayoutParams();
+                int scrollViewBotMargin = scrollViewLp.bottomMargin;
+                int listMsgHeight = listMsg.getHeight();
+                int contianerHeight = container.getHeight() - scrollViewBotMargin;
+                int scrollViewHeight = scrollView.getHeight();
+                Log.d(TAG, "listH " + listMsgHeight + " containerH " + contianerHeight +
+                        " scrollViewH " + scrollViewHeight);
+                if (listMsgHeight < contianerHeight) {
+                    scrollViewLp.height = listMsgHeight;
+                    scrollView.setLayoutParams(scrollViewLp);
+                } else {
+                    scrollView.scrollTo(0, listMsgHeight);
+                }
+            });
         });
     }
 

@@ -131,7 +131,7 @@ public class MainPage extends Fragment {
             MainActivity activity = (MainActivity) getActivity();
 
             SQLiteDatabase smsDb = SmsModel.openDb(activity);
-            ArrayList<SmsModel.Sms> smss = SmsModel.getLastSmss(smsDb);
+            ArrayList<SmsModel.Sms> smss = SmsModel.getLastSmss(smsDb, 0, 1000);
             smsDb.close();
 
             Log.d(TAG, "loaded sms " + smss.size());
