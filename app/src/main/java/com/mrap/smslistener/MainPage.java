@@ -84,10 +84,14 @@ public class MainPage extends Fragment {
     private void renderSmss(ArrayList<SmsModel.Sms> smss) {
         MainActivity activity = (MainActivity) getActivity();
         activity.runOnUiThread(() -> {
+            long startMs = System.currentTimeMillis();
+
             View view = getView();
 
             RecyclerView recyclerView = view.findViewById(R.id.main_listConversation);
             recyclerView.setAdapter(new ConversationAdapter(activity, smss));
+
+            Log.d(TAG, "rendering recycler view for " + (System.currentTimeMillis() - startMs) + " ms");
 
 //            LinearLayout listSms = view.findViewById(R.id.main_listConversation);
 //
