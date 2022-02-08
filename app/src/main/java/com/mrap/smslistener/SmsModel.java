@@ -12,6 +12,8 @@ import android.util.Log;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 
 public abstract class SmsModel {
@@ -19,6 +21,7 @@ public abstract class SmsModel {
     private static final String TAG = "SmsModel";
 
     public static class Sms {
+        int id;
         long date;
         String addr;
         String body;
@@ -238,21 +241,23 @@ public abstract class SmsModel {
     public static ArrayList<Sms> getSmss(SQLiteDatabase smsDb, int offset, int limit) {
         ArrayList<Sms> res = new ArrayList<>();
 
-        Cursor c = smsDb.query("sms", new String[] {"sms_addr", "sms_body", "sms_timems",
-                        "sms_read"}, null, null, null, null,
-                "sms_timems DESC", createLimit(offset, limit, true));
+        Cursor c = smsDb.query("sms", new String[] {"sms_id", "sms_addr", "sms_body",
+                        "sms_timems", "sms_read"}, null, null, null,
+                null, "sms_timems DESC", createLimit(offset, limit, true));
 
         if (!c.moveToFirst()) {
             c.close();
             return res;
         }
 
+        int idIdx = c.getColumnIndex("sms_id");
         int addrIdx = c.getColumnIndex("sms_addr");
         int bodyIdx = c.getColumnIndex("sms_body");
         int timeIdx = c.getColumnIndex("sms_timems");
         int readIdx = c.getColumnIndex("sms_read");
         do {
             Sms row = new Sms() {{
+                id = c.getInt(idIdx);
                 date = c.getLong(timeIdx);
                 addr = c.getString(addrIdx);
                 body = c.getString(bodyIdx);
@@ -297,7 +302,7 @@ public abstract class SmsModel {
     public static ArrayList<Sms> getSmss(SQLiteDatabase smsDb, String addr, int offset, int limit) {
         ArrayList<Sms> res = new ArrayList<>();
 
-        Cursor c = smsDb.query("sms", new String[] {"sms_addr", "sms_body", "sms_timems",
+        Cursor c = smsDb.query("sms", new String[] {"sms_id", "sms_addr", "sms_body", "sms_timems",
                         "sms_read"}, "sms_addr='" + addr + "'", null,
                 null, null, "sms_timems DESC", createLimit(offset, limit,
                         true));
@@ -306,12 +311,14 @@ public abstract class SmsModel {
             return res;
         }
 
+        int idIdx = c.getColumnIndex("sms_id");
         int addrIdx = c.getColumnIndex("sms_addr");
         int bodyIdx = c.getColumnIndex("sms_body");
         int timeIdx = c.getColumnIndex("sms_timems");
         int readIdx = c.getColumnIndex("sms_read");
         do {
             Sms row = new Sms() {{
+                id = c.getInt(idIdx);
                 addr = c.getString(addrIdx);
                 body = c.getString(bodyIdx);
                 date = c.getLong(timeIdx);
@@ -375,7 +382,7 @@ public abstract class SmsModel {
 //                ") s1 INNER JOIN sms s2 ON s1.sms_addr=s2.sms_addr AND \n" +
 //                "s1.max_timems=s2.sms_timems ORDER BY s2.sms_timems DESC", null);
 
-        Cursor c = smsDb.query("sms", new String[] {"sms_addr", "sms_body", "sms_timems",
+        Cursor c = smsDb.query("sms", new String[] {"sms_id", "sms_addr", "sms_body", "sms_timems",
                         "sms_read"}, null, null, null, null,
                 "sms_timems DESC");
 
@@ -384,6 +391,7 @@ public abstract class SmsModel {
             return res;
         }
 
+        int idxId = c.getColumnIndex("sms_id");
         int idxAddr = c.getColumnIndex("sms_addr");
         int idxBody = c.getColumnIndex("sms_body");
         int idxTime = c.getColumnIndex("sms_timems");
@@ -406,6 +414,7 @@ public abstract class SmsModel {
             }
 
             Sms row = new Sms() {{
+                id = c.getInt(idxId);
                 addr = rowAddr;
                 body = c.getString(idxBody);
                 date = c.getLong(idxTime);
@@ -593,9 +602,9 @@ public abstract class SmsModel {
             String addr = c.getString(idxAddr);
             String body = c.getString(idxBody);
 
-//            if (oldestFilterDate-date > 30000) {
-//                break;
-//            }
+            if (oldestFilterDate-date > 30000) {
+                break;
+            }
 
 //            Log.d(TAG, addr + ":" + date + ": ==" + body + "==");
 
@@ -611,5 +620,52 @@ public abstract class SmsModel {
         Log.d(TAG, "done fetching content resolver smss");
 
         return res;
+    }
+
+    public static void cleanupDbAlreadyInContentResolver(SQLiteDatabase smsDb, Context context) {
+        ArrayList<Sms> dbSmss = getSmss(smsDb, -1, -1);
+        ArrayList<Sms> matchedSmss = getSmssFromContentResolver(context, dbSmss);
+
+        if (matchedSmss.size() == 0) {
+            return;
+        }
+
+        String ids = "";
+        for (int i = 0; i < matchedSmss.size(); i++) {
+            if (i < matchedSmss.size() - 1) {
+                ids += matchedSmss.get(i).id + ",";
+            } else {
+                ids += matchedSmss.get(i).id;
+            }
+        }
+
+        Log.d(TAG, "deleting sms ids " + ids);
+        smsDb.delete("sms", "sms_id IN (" + ids + ")", null);
+    }
+
+    public static ArrayList<Sms> getLastSmssFromBoth(
+            SQLiteDatabase smsDb, Context context, int offset, int limit) throws Exception {
+        ArrayList<Sms> allSmss = getLastSmss(smsDb, offset, limit);
+        allSmss.addAll(getLastSmssFromContentResolver(context, offset, limit));
+        sortAndTrim(allSmss, limit);
+        return allSmss;
+    }
+
+    public static ArrayList<Sms> getSmssFromBoth(
+            SQLiteDatabase smsDb, Context context, String address, int offset, int limit) {
+        ArrayList<Sms> allSmss = getSmss(smsDb, address, offset, limit);
+        allSmss.addAll(getSmssFromContentResolver(context, address, offset, limit));
+        sortAndTrim(allSmss, limit);
+        return allSmss;
+    }
+
+    public static void sortAndTrim(ArrayList<Sms> smss, int limit) {
+        Collections.sort(smss, (o1, o2) -> Long.compare(o2.date, o1.date));
+
+        if (smss.size() > limit) {
+            for (int i = smss.size() - 1; i >= 0; i--) {
+                smss.remove(i);
+            }
+        }
     }
 }

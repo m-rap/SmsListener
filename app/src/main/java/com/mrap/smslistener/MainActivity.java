@@ -8,6 +8,7 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
+import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.ContextThemeWrapper;
 import android.view.Gravity;
@@ -58,6 +59,10 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         SmsModel.migrateToLatestVersion(this);
+
+        SQLiteDatabase smsDb = SmsModel.openDb(this);
+        SmsModel.cleanupDbAlreadyInContentResolver(smsDb, this);
+        smsDb.close();
 
         MainPage mainPage = new MainPage();
         getSupportFragmentManager().

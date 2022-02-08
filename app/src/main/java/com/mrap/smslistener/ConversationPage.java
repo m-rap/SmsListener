@@ -104,8 +104,10 @@ public class ConversationPage extends Fragment {
             SQLiteDatabase smsDb = SmsModel.openDb(activity);
 //            ArrayList<SmsModel.Sms> smss = SmsModel.getSmss(smsDb,
 //                    getArguments().getString("addr"), 0, 1000);
-            ArrayList<SmsModel.Sms> smss = SmsModel.getSmssFromContentResolver(activity,
-                    getArguments().getString("addr"), 0, 10);
+//            ArrayList<SmsModel.Sms> smss = SmsModel.getSmssFromContentResolver(activity,
+//                    getArguments().getString("addr"), 0, 10);
+            ArrayList<SmsModel.Sms> smss = SmsModel.getSmssFromBoth(smsDb, activity,
+                    getArguments().getString("addr"), 0, 1000);
             smsDb.close();
 
 //            long startMs = System.currentTimeMillis();

@@ -145,7 +145,9 @@ public class MainPage extends Fragment {
             try {
                 SQLiteDatabase smsDb = SmsModel.openDb(activity);
 //            ArrayList<SmsModel.Sms> smss = SmsModel.getLastSmss(smsDb, 0, 1000);
-                ArrayList<SmsModel.Sms> smss = SmsModel.getLastSmssFromContentResolver(activity,
+//                ArrayList<SmsModel.Sms> smss = SmsModel.getLastSmssFromContentResolver(activity,
+//                        0, 1000);
+                ArrayList<SmsModel.Sms> smss = SmsModel.getLastSmssFromBoth(smsDb, activity,
                         0, 1000);
                 smsDb.close();
 
