@@ -1,31 +1,33 @@
 package com.mrap.smslistener;
 
-import android.content.ClipData;
-import android.content.ClipboardManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
-import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 public class ConversationPage extends Fragment {
     private static final String TAG = "ChatPage";
-    ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private String addr;
+    private BroadcastReceiver smsUIReceiver;
+
 
     @Nullable
     @Override
@@ -36,49 +38,52 @@ public class ConversationPage extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         MainActivity activity = (MainActivity) getActivity();
-        activity.getSupportActionBar().setTitle(getArguments().getString("addr"));
+        addr = getArguments().getString("addr");
 
-        RecyclerView listMsg = view.findViewById(R.id.cht_listChat);
+        Toolbar toolbar = view.findViewById(R.id.conv_toolbar);
+        toolbar.setTitle(addr);
+        activity.setSupportActionBar(toolbar);
+
+        smsUIReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                if (intent == null) {
+                    return;
+                }
+
+                executorService.submit(() -> {
+                    ArrayList<SmsModel.Sms> smss = refresh();
+                    renderMsgs(smss);
+                });
+            }
+        };
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction("smsUIReceiver");
+        activity.registerReceiver(smsUIReceiver, intentFilter);
+
+        RecyclerView listMsg = view.findViewById(R.id.conv_listChat);
         listMsg.setAdapter(new MessageAdapter(getContext(), new ArrayList<>()));
 
-        refresh();
+        executorService.submit(() -> {
+            checkOrRefresh();
+        });
+    }
+
+    @Override
+    public void onDestroyView() {
+        super.onDestroyView();
+        getActivity().unregisterReceiver(smsUIReceiver);
     }
 
     private void renderMsgs(ArrayList<SmsModel.Sms> smss) {
         MainActivity activity = (MainActivity) getActivity();
         activity.runOnUiThread(() -> {
             View view = getView();
-            LinearLayout container = view.findViewById(R.id.cht_container);
+            LinearLayout container = view.findViewById(R.id.conv_container);
 
-            RecyclerView listMsg = view.findViewById(R.id.cht_listChat);
+            RecyclerView listMsg = view.findViewById(R.id.conv_listChat);
             container.setVisibility(View.INVISIBLE);
             listMsg.setAdapter(new MessageAdapter(activity, smss));
-
-//            listMsg.removeAllViews();
-//            SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm");
-//
-//            for (int i = smss.size() - 1; i >= 0; i--) {
-//                SmsModel.Sms sms = smss.get(i);
-//                View viewSms = views[i];
-//
-////                registerForContextMenu(viewSms);
-//                viewSms.setOnLongClickListener(v -> {
-////                    activity.openContextMenu(viewSms);
-//                    ClipboardManager clipboardManager = (ClipboardManager) activity.
-//                            getSystemService(Context.CLIPBOARD_SERVICE);
-//                    clipboardManager.setPrimaryClip(ClipData.newPlainText(null, sms.body));
-//                    Toast.makeText(activity, "Copied to clipboard", Toast.LENGTH_SHORT).show();
-//                    return true;
-//                });
-//
-//                TextView textView = viewSms.findViewById(R.id.msg_txtMsg);
-//                textView.setText(sms.body);
-//
-//                textView = viewSms.findViewById(R.id.msg_txtDate);
-//                textView.setText(sdf.format(sms.date));
-//
-//                listMsg.addView(viewSms);
-//            }
 
             listMsg.post(() -> {
                 LinearLayout.LayoutParams listMsgLp = (LinearLayout.LayoutParams) listMsg.getLayoutParams();
@@ -89,7 +94,6 @@ public class ConversationPage extends Fragment {
                     listMsgLp.height = listMsgHeight;
                     listMsg.setLayoutParams(listMsgLp);
                 } else {
-//                    listMsg.scrollTo(0, listMsgHeight);
                     listMsg.scrollToPosition(smss.size() - 1);
                 }
                 container.setVisibility(View.VISIBLE);
@@ -97,18 +101,17 @@ public class ConversationPage extends Fragment {
         });
     }
 
-    private void refresh() {
-        executorService.submit(() -> {
-            MainActivity activity = (MainActivity) getActivity();
+    private void checkOrRefresh() {
+        MainActivity activity = (MainActivity) getActivity();
 
-            SQLiteDatabase smsDb = SmsModel.openDb(activity);
-//            ArrayList<SmsModel.Sms> smss = SmsModel.getSmss(smsDb,
-//                    getArguments().getString("addr"), 0, 1000);
-//            ArrayList<SmsModel.Sms> smss = SmsModel.getSmssFromContentResolver(activity,
-//                    getArguments().getString("addr"), 0, 10);
-            ArrayList<SmsModel.Sms> smss = SmsModel.getSmssFromBoth(smsDb, activity,
-                    getArguments().getString("addr"), 0, 1000);
-            smsDb.close();
+        HashMap<String, ArrayList<SmsModel.Sms>> smssMap = activity.getSmssMap();
+
+        ArrayList<SmsModel.Sms> smss = smssMap.get(addr);
+
+        if (smss == null) {
+            smss = refresh();
+            smssMap.put(addr, smss);
+        }
 
 //            long startMs = System.currentTimeMillis();
 //            View[] views = new View[smss.size()];
@@ -117,7 +120,21 @@ public class ConversationPage extends Fragment {
 //            }
 //            Log.d(TAG, "inflated views for " + (System.currentTimeMillis() - startMs) + " ms");
 
-            renderMsgs(smss);
-        });
+        renderMsgs(smss);
+    }
+
+    private ArrayList<SmsModel.Sms> refresh() {
+        MainActivity activity = (MainActivity) getActivity();
+
+        SQLiteDatabase smsDb = SmsModel.openDb(activity);
+//            ArrayList<SmsModel.Sms> smss = SmsModel.getSmss(smsDb,
+//                    getArguments().getString("addr"), 0, 1000);
+//            ArrayList<SmsModel.Sms> smss = SmsModel.getSmssFromContentResolver(activity,
+//                    getArguments().getString("addr"), 0, 10);
+        ArrayList<SmsModel.Sms> smss = SmsModel.getSmssFromBoth(smsDb, activity,
+                addr, 0, 1000);
+        smsDb.close();
+
+        return smss;
     }
 }

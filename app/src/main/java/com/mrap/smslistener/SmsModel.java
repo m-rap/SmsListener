@@ -504,7 +504,8 @@ public abstract class SmsModel {
 
         c.close();
 
-        Log.d(TAG, "loaded in " + (System.currentTimeMillis() - startMs) + " ms");
+        Log.d(TAG, "loaded " + res.size() + " smss in " +
+                (System.currentTimeMillis() - startMs) + " ms");
 
         return res;
     }
@@ -663,7 +664,7 @@ public abstract class SmsModel {
         Collections.sort(smss, (o1, o2) -> Long.compare(o2.date, o1.date));
 
         if (smss.size() > limit) {
-            for (int i = smss.size() - 1; i >= 0; i--) {
+            for (int i = smss.size() - 1; i >= limit; i--) {
                 smss.remove(i);
             }
         }

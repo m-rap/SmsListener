@@ -16,11 +16,17 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import java.util.ArrayList;
+import java.util.HashMap;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
     private static final int REQCODE_REQPERM = 0;
+
+    private ArrayList<SmsModel.Sms> lastSmss = null;
+    private HashMap<String, ArrayList<SmsModel.Sms>> smssMap = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -69,6 +75,18 @@ public class MainActivity extends AppCompatActivity {
                 beginTransaction().
                 replace(R.id.actmain_framelayout, mainPage, null).
                 commit();
+    }
+
+    public ArrayList<SmsModel.Sms> getLastSmss() {
+        return lastSmss;
+    }
+
+    public void setLastSmss(ArrayList<SmsModel.Sms> lastSmss) {
+        this.lastSmss = lastSmss;
+    }
+
+    public HashMap<String, ArrayList<SmsModel.Sms>> getSmssMap() {
+        return smssMap;
     }
 
     public float convertDipToPix(Context context, int dip){
