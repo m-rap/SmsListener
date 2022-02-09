@@ -83,7 +83,8 @@ public class ConversationPage extends Fragment {
 
             RecyclerView listMsg = view.findViewById(R.id.conv_listChat);
             container.setVisibility(View.INVISIBLE);
-            listMsg.setAdapter(new MessageAdapter(activity, smss));
+            MessageAdapter adapter = new MessageAdapter(activity, smss);
+            listMsg.setAdapter(adapter);
 
             listMsg.post(() -> {
                 LinearLayout.LayoutParams listMsgLp = (LinearLayout.LayoutParams) listMsg.getLayoutParams();
@@ -94,7 +95,7 @@ public class ConversationPage extends Fragment {
                     listMsgLp.height = listMsgHeight;
                     listMsg.setLayoutParams(listMsgLp);
                 } else {
-                    listMsg.scrollToPosition(smss.size() - 1);
+                    listMsg.scrollToPosition(adapter.getItemCount() - 1);
                 }
                 container.setVisibility(View.VISIBLE);
             });

@@ -3,6 +3,7 @@ package com.mrap.smslistener;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -17,11 +18,21 @@ import java.util.ArrayList;
 
 public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageViewHolder> {
 
-    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm");
+    private static final int TYPE_SPACER = 0;
+    private static final int TYPE_MSG = 1;
+    private static final String TAG = "MessageAdapter";
+
+    private final SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm");
 
     public static class MessageViewHolder extends RecyclerView.ViewHolder {
-        public MessageViewHolder(@NonNull View itemView) {
+        private TextView txtMsg;
+        private TextView txtDate;
+        public MessageViewHolder(@NonNull View itemView, int viewType) {
             super(itemView);
+            if (viewType == TYPE_MSG) {
+                txtMsg = itemView.findViewById(R.id.msg_txtMsg);
+                txtDate = itemView.findViewById(R.id.msg_txtDate);
+            }
         }
     }
 
@@ -36,21 +47,46 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
     @NonNull
     @Override
     public MessageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        return new MessageViewHolder(
-                LayoutInflater.from(parent.getContext()).inflate(R.layout.view_message, parent,
-                        false));
+        View itemView;
+        if (viewType == TYPE_SPACER) {
+            MainActivity activity = (MainActivity) context;
+            itemView = new View(activity);
+            int spacerHeight = (int)activity.convertDipToPix(activity, 30);
+            Log.d(TAG, "spacer height " + spacerHeight);
+            RecyclerView.LayoutParams lp = new RecyclerView.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    spacerHeight);
+            itemView.setLayoutParams(lp);
+        } else {
+            itemView = LayoutInflater.from(parent.getContext()).
+                    inflate(R.layout.view_message, parent,
+                            false);
+        }
+        return new MessageViewHolder(itemView, viewType);
+    }
+
+    @Override
+    public int getItemViewType(int position) {
+        return position == smss.size() ? TYPE_SPACER : TYPE_MSG;
+    }
+
+    @Override
+    public int getItemCount() {
+        return smss.size() + 1;
     }
 
     @Override
     public void onBindViewHolder(@NonNull MessageViewHolder holder, int position) {
+        if (position == smss.size()) {
+            return;
+        }
+
         SmsModel.Sms sms = smss.get(smss.size() - 1 - position);
 
         MainActivity activity = (MainActivity) context;
         View viewSms = holder.itemView;
 
-//                registerForContextMenu(viewSms);
         viewSms.setOnLongClickListener(v -> {
-//                    activity.openContextMenu(viewSms);
             ClipboardManager clipboardManager = (ClipboardManager) activity.
                     getSystemService(Context.CLIPBOARD_SERVICE);
             clipboardManager.setPrimaryClip(ClipData.newPlainText(null, sms.body));
@@ -58,15 +94,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
             return true;
         });
 
-        TextView textView = viewSms.findViewById(R.id.msg_txtMsg);
-        textView.setText(sms.body);
-
-        textView = viewSms.findViewById(R.id.msg_txtDate);
-        textView.setText(sdf.format(sms.date));
-    }
-
-    @Override
-    public int getItemCount() {
-        return smss.size();
+        holder.txtMsg.setText(sms.body);
+        holder.txtDate.setText(sdf.format(sms.date));
     }
 }
