@@ -2,7 +2,6 @@ package com.mrap.smslistener;
 
 import android.content.Context;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -11,6 +10,9 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.mrap.smslistener.model.Sms;
+import com.mrap.smslistener.model.SmsModel;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
@@ -18,7 +20,7 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
 
     private static final String TAG = "ConversationAdapter";
 
-    public ConversationAdapter(Context context, ArrayList<SmsModel.Sms> smss) {
+    public ConversationAdapter(Context context, ArrayList<Sms> smss) {
         this.context = context;
         this.smss = smss;
     }
@@ -30,7 +32,7 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
     }
 
     private final Context context;
-    private final ArrayList<SmsModel.Sms> smss;
+    private final ArrayList<Sms> smss;
     private final SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMdd HH:mm");
 
 //    private int viewHolderCount = 0;
@@ -49,7 +51,7 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
 
     @Override
     public void onBindViewHolder(@NonNull ConversationViewHolder holder, int position) {
-        SmsModel.Sms sms = smss.get(position);
+        Sms sms = smss.get(position);
 
         View viewSms = holder.itemView;
         MainActivity activity = (MainActivity) context;

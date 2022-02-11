@@ -13,6 +13,9 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.mrap.smslistener.model.Sms;
+import com.mrap.smslistener.model.SmsModel;
+
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
@@ -37,9 +40,9 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
     }
 
     private final Context context;
-    private final ArrayList<SmsModel.Sms> smss;
+    private final ArrayList<Sms> smss;
 
-    public MessageAdapter(Context context, ArrayList<SmsModel.Sms> smss) {
+    public MessageAdapter(Context context, ArrayList<Sms> smss) {
         this.context = context;
         this.smss = smss;
     }
@@ -81,7 +84,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
             return;
         }
 
-        SmsModel.Sms sms = smss.get(smss.size() - 1 - position);
+        Sms sms = smss.get(smss.size() - 1 - position);
 
         MainActivity activity = (MainActivity) context;
         View viewSms = holder.itemView;

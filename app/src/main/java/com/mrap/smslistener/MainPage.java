@@ -17,6 +17,10 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.mrap.smslistener.model.Sms;
+import com.mrap.smslistener.model.SmsModel;
+import com.mrap.smslistener.model.SmsModel_v1;
+
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -47,7 +51,7 @@ public class MainPage extends Fragment {
                 }
 
                 executorService.submit(() -> {
-                    ArrayList<SmsModel.Sms> smss = refresh();
+                    ArrayList<Sms> smss = refresh();
                     renderSmss(smss);
                 });
             }
@@ -70,7 +74,7 @@ public class MainPage extends Fragment {
         getActivity().unregisterReceiver(smsUIReceiver);
     }
 
-    private void renderSmss(ArrayList<SmsModel.Sms> smss) {
+    private void renderSmss(ArrayList<Sms> smss) {
         MainActivity activity = (MainActivity) getActivity();
         activity.runOnUiThread(() -> {
             long startMs = System.currentTimeMillis();
@@ -87,7 +91,7 @@ public class MainPage extends Fragment {
     private void checkOrRefresh() {
         MainActivity activity = (MainActivity) getActivity();
 
-        ArrayList<SmsModel.Sms> lastSmss = activity.getLastSmss();
+        ArrayList<Sms> lastSmss = activity.getLastSmss();
         if (lastSmss == null) {
             lastSmss = refresh();
         }
@@ -95,14 +99,14 @@ public class MainPage extends Fragment {
         renderSmss(lastSmss);
     }
 
-    private ArrayList<SmsModel.Sms> refresh() {
+    private ArrayList<Sms> refresh() {
         MainActivity activity = (MainActivity) getActivity();
         try {
-            SQLiteDatabase smsDb = SmsModel.openDb(activity);
+            SQLiteDatabase smsDb = SmsModel_v1.openDb(activity);
 //            ArrayList<SmsModel.Sms> lastSmss = SmsModel.getLastSmss(smsDb, 0, 1000);
 //                ArrayList<SmsModel.Sms> lastSmss = SmsModel.getLastSmssFromContentResolver(activity,
 //                        0, 1000);
-            ArrayList<SmsModel.Sms> lastSmss = SmsModel.getLastSmssFromBoth(smsDb, activity,
+            ArrayList<Sms> lastSmss = Sms.getLastSmssFromBoth(smsDb, activity,
                     0, 1000);
             smsDb.close();
 

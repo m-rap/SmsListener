@@ -16,6 +16,10 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.mrap.smslistener.model.Sms;
+import com.mrap.smslistener.model.SmsModel;
+import com.mrap.smslistener.model.SmsModel_v1;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 
@@ -25,8 +29,11 @@ public class MainActivity extends AppCompatActivity {
 
     private static final int REQCODE_REQPERM = 0;
 
-    private ArrayList<SmsModel.Sms> lastSmss = null;
-    private HashMap<String, ArrayList<SmsModel.Sms>> smssMap = new HashMap<>();
+    private ArrayList<Sms> lastSmss = null;
+    private HashMap<String, ArrayList<Sms>> smssMap = new HashMap<>();
+    public final int ROW_PER_PAGE = 100;
+    private int lastSmsCurrPage = 0;
+    private HashMap<String, Integer> smsMapCurrPage = new HashMap<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -64,10 +71,10 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        SmsModel.migrateToLatestVersion(this);
+        Sms.migrateToLatestVersion(this);
 
-        SQLiteDatabase smsDb = SmsModel.openDb(this);
-        SmsModel.cleanupDbAlreadyInContentResolver(smsDb, this);
+        SQLiteDatabase smsDb = SmsModel_v1.openDb(this);
+//        SmsModel_v1.cleanupDbAlreadyInContentResolver(smsDb, this);
         smsDb.close();
 
         MainPage mainPage = new MainPage();
@@ -77,16 +84,20 @@ public class MainActivity extends AppCompatActivity {
                 commit();
     }
 
-    public ArrayList<SmsModel.Sms> getLastSmss() {
+    public ArrayList<Sms> getLastSmss() {
         return lastSmss;
     }
 
-    public void setLastSmss(ArrayList<SmsModel.Sms> lastSmss) {
+    public void setLastSmss(ArrayList<Sms> lastSmss) {
         this.lastSmss = lastSmss;
     }
 
-    public HashMap<String, ArrayList<SmsModel.Sms>> getSmssMap() {
+    public HashMap<String, ArrayList<Sms>> getSmssMap() {
         return smssMap;
+    }
+
+    public HashMap<String, Integer> getSmsMapCurrPage() {
+        return smsMapCurrPage;
     }
 
     public float convertDipToPix(Context context, int dip){
