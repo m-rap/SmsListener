@@ -11,7 +11,7 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-public class SmsSqliteHandler_v1 {
+public class SmsSqliteHandler_v1 extends SqliteHandler {
     private static final String TAG = "SmsSqliteHandler_v1";
 
     private final static String onCreateSql_1 = "" +
@@ -25,20 +25,8 @@ public class SmsSqliteHandler_v1 {
             "CREATE INDEX IF NOT EXISTS idx_sms_addr ON sms(sms_addr);";
 
     public static SQLiteDatabase openDb(Context context) {
-        Log.d(TAG, "opening db");
-        SQLiteOpenHelper sqLiteOpenHelper = new SQLiteOpenHelper(context,
-                context.getExternalFilesDir(null) + "/sms.v1.db", null, 1) {
-            @Override
-            public void onCreate(SQLiteDatabase db) {
-                db.execSQL(onCreateSql_1);
-            }
-
-            @Override
-            public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
-
-            }
-        };
-        return sqLiteOpenHelper.getWritableDatabase();
+        return openDb(context, context.getExternalFilesDir(null) + "/sms.v1.db",
+                onCreateSql_1);
     }
 
     public static void insertSms(

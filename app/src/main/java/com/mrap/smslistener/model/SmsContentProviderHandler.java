@@ -150,6 +150,44 @@ public class SmsContentProviderHandler {
     }
 
     public static ArrayList<Sms> getSmssFromContentResolver(
+            Context context) {
+        ArrayList<Sms> res = new ArrayList<>();
+
+        ContentResolver cr = context.getContentResolver();
+        Cursor c = cr.query(Telephony.Sms.Inbox.CONTENT_URI, null, null,
+                null, Telephony.Sms.DATE + " DESC");
+        if (c == null) {
+            return res;
+        }
+        if (!c.moveToFirst()) {
+            c.close();
+            return res;
+        }
+
+        int idxTime = c.getColumnIndexOrThrow(Telephony.Sms.DATE);
+        int idxAddr = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS);
+        int idxBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY);
+//        int idxType = c.getColumnIndexOrThrow(Telephony.Sms.TYPE);
+        int idxRead = c.getColumnIndexOrThrow(Telephony.Sms.READ);
+
+        do {
+            String rowAddr = c.getString(idxAddr);
+            Sms row = new Sms() {{
+                addr = rowAddr;
+                body = c.getString(idxBody);
+                date = c.getLong(idxTime);
+                type = Telephony.Sms.MESSAGE_TYPE_INBOX;
+                read = c.getInt(idxRead) != 0;
+            }};
+            res.add(row);
+        } while (c.moveToNext());
+        c.close();
+        Log.d(TAG, "done fetching content resolver smss");
+
+        return res;
+    }
+
+    public static ArrayList<Sms> getSmssFromContentResolver(
             Context context, ArrayList<Sms> filterSmss) {
         ArrayList<Sms> res = new ArrayList<>();
         if (filterSmss.size() == 0) {
