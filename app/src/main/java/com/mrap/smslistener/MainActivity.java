@@ -74,7 +74,7 @@ public class MainActivity extends AppCompatActivity {
         Sms.migrateToLatestVersion(this);
 
         SQLiteDatabase smsDb = SmsModel_v1.openDb(this);
-//        SmsModel_v1.cleanupDbAlreadyInContentResolver(smsDb, this);
+        SmsModel_v1.cleanupDbAlreadyInContentResolver(smsDb, this);
         smsDb.close();
 
         MainPage mainPage = new MainPage();

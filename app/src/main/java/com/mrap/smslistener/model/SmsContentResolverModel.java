@@ -203,25 +203,4 @@ public class SmsContentResolverModel {
 
         return res;
     }
-
-    public static void cleanupDbAlreadyInContentResolver(SQLiteDatabase smsDb, Context context) {
-        ArrayList<Sms> dbSmss = SmsModel_v1.getSmss(smsDb, -1, -1);
-        ArrayList<Sms> matchedSmss = getSmssFromContentResolver(context, dbSmss);
-
-        if (matchedSmss.size() == 0) {
-            return;
-        }
-
-        String ids = "";
-        for (int i = 0; i < matchedSmss.size(); i++) {
-            if (i < matchedSmss.size() - 1) {
-                ids += matchedSmss.get(i).id + ",";
-            } else {
-                ids += matchedSmss.get(i).id;
-            }
-        }
-
-        Log.d(TAG, "deleting sms ids " + ids);
-        smsDb.delete("sms", "sms_id IN (" + ids + ")", null);
-    }
 }
