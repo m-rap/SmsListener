@@ -16,9 +16,9 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashSet;
 
-public abstract class SmsModel {
+public abstract class SmsSqliteHandler {
 
-    private static final String TAG = "SmsModel";
+    private static final String TAG = "SmsSqliteHandler";
 
     private final static String onCreateSql_0 = "" +
             "CREATE TABLE IF NOT EXISTS sms (\n" +

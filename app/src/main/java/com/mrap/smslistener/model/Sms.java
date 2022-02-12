@@ -90,15 +90,15 @@ public class Sms {
         ArrayList<Sms> smss;
 
         if (lastUsedVer == 0) {
-            oldVerDb = SmsModel.openDb_0(context);
-            smss = SmsModel.getSmss_0(oldVerDb);
+            oldVerDb = SmsSqliteHandler.openDb_0(context);
+            smss = SmsSqliteHandler.getSmss_0(oldVerDb);
         } else {
             return;
         }
         oldVerDb.close();
 
-        SQLiteDatabase newDb = SmsModel_v1.openDb(context);
-        SmsModel_v1.insertSmss(newDb, smss);
+        SQLiteDatabase newDb = SmsSqliteHandler_v1.openDb(context);
+        SmsSqliteHandler_v1.insertSmss(newDb, smss);
         newDb.close();
     }
 
@@ -120,16 +120,16 @@ public class Sms {
 
     public static ArrayList<Sms> getLastSmssFromBoth(
             SQLiteDatabase smsDb, Context context, int offset, int limit) throws Exception {
-        ArrayList<Sms> allSmss = SmsModel_v1.getLastSmss(smsDb, offset, limit);
-        allSmss.addAll(SmsContentResolverModel.getLastSmssFromContentResolver(context, offset, limit));
+        ArrayList<Sms> allSmss = SmsSqliteHandler_v1.getLastSmss(smsDb, offset, limit);
+        allSmss.addAll(SmsContentProviderHandler.getLastSmssFromContentResolver(context, offset, limit));
         sortAndTrim(allSmss, limit);
         return allSmss;
     }
 
     public static ArrayList<Sms> getSmssFromBoth(
             SQLiteDatabase smsDb, Context context, String address, int offset, int limit) {
-        ArrayList<Sms> allSmss = SmsModel_v1.getSmss(smsDb, address, offset, limit);
-        allSmss.addAll(SmsContentResolverModel.getSmssFromContentResolver(context, address, offset, limit));
+        ArrayList<Sms> allSmss = SmsSqliteHandler_v1.getSmss(smsDb, address, offset, limit);
+        allSmss.addAll(SmsContentProviderHandler.getSmssFromContentResolver(context, address, offset, limit));
         sortAndTrim(allSmss, limit);
         return allSmss;
     }

@@ -11,8 +11,8 @@ import android.util.Log;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-public class SmsModel_v1 {
-    private static final String TAG = "SmsModel_v1";
+public class SmsSqliteHandler_v1 {
+    private static final String TAG = "SmsSqliteHandler_v1";
 
     private final static String onCreateSql_1 = "" +
             "CREATE TABLE IF NOT EXISTS sms (\n" +
@@ -197,8 +197,8 @@ public class SmsModel_v1 {
     }
 
     public static void cleanupDbAlreadyInContentResolver(SQLiteDatabase smsDb, Context context) {
-        ArrayList<Sms> dbSmss = SmsModel_v1.getSmss(smsDb, -1, -1);
-        ArrayList<Sms> matchedSmss = SmsContentResolverModel.getSmssFromContentResolver(context, dbSmss);
+        ArrayList<Sms> dbSmss = SmsSqliteHandler_v1.getSmss(smsDb, -1, -1);
+        ArrayList<Sms> matchedSmss = SmsContentProviderHandler.getSmssFromContentResolver(context, dbSmss);
 
         if (matchedSmss.size() == 0) {
             return;

@@ -11,7 +11,6 @@ import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.mrap.smslistener.model.Sms;
-import com.mrap.smslistener.model.SmsModel;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;

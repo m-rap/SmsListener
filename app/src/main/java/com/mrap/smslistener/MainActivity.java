@@ -17,8 +17,7 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 import com.mrap.smslistener.model.Sms;
-import com.mrap.smslistener.model.SmsModel;
-import com.mrap.smslistener.model.SmsModel_v1;
+import com.mrap.smslistener.model.SmsSqliteHandler_v1;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -73,8 +72,8 @@ public class MainActivity extends AppCompatActivity {
 
         Sms.migrateToLatestVersion(this);
 
-        SQLiteDatabase smsDb = SmsModel_v1.openDb(this);
-        SmsModel_v1.cleanupDbAlreadyInContentResolver(smsDb, this);
+        SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(this);
+        SmsSqliteHandler_v1.cleanupDbAlreadyInContentResolver(smsDb, this);
         smsDb.close();
 
         MainPage mainPage = new MainPage();

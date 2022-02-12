@@ -18,8 +18,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.mrap.smslistener.model.Sms;
-import com.mrap.smslistener.model.SmsModel;
-import com.mrap.smslistener.model.SmsModel_v1;
+import com.mrap.smslistener.model.SmsSqliteHandler_v1;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
@@ -102,9 +101,9 @@ public class MainPage extends Fragment {
     private ArrayList<Sms> refresh() {
         MainActivity activity = (MainActivity) getActivity();
         try {
-            SQLiteDatabase smsDb = SmsModel_v1.openDb(activity);
-//            ArrayList<SmsModel.Sms> lastSmss = SmsModel.getLastSmss(smsDb, 0, 1000);
-//                ArrayList<SmsModel.Sms> lastSmss = SmsModel.getLastSmssFromContentResolver(activity,
+            SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(activity);
+//            ArrayList<SmsSqliteHandler.Sms> lastSmss = SmsSqliteHandler.getLastSmss(smsDb, 0, 1000);
+//                ArrayList<SmsSqliteHandler.Sms> lastSmss = SmsSqliteHandler.getLastSmssFromContentResolver(activity,
 //                        0, 1000);
             ArrayList<Sms> lastSmss = Sms.getLastSmssFromBoth(smsDb, activity,
                     0, 1000);

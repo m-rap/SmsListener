@@ -11,9 +11,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashSet;
 
-public class SmsContentResolverModel {
+public class SmsContentProviderHandler {
 
-    private static final String TAG = "SmsCntRslvrModel";
+    private static final String TAG = "SmsCntPrvdrHndlr";
 
     public static ArrayList<Sms> getLastSmssFromContentResolver(
             Context context, int offset, int limit) throws Exception {

@@ -19,8 +19,7 @@ import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
 import com.mrap.smslistener.model.Sms;
-import com.mrap.smslistener.model.SmsModel;
-import com.mrap.smslistener.model.SmsModel_v1;
+import com.mrap.smslistener.model.SmsSqliteHandler_v1;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -136,10 +135,10 @@ public class ConversationPage extends Fragment {
 
 //        int currPage = activity.getSmsMapCurrPage().get(addr);
 
-        SQLiteDatabase smsDb = SmsModel_v1.openDb(activity);
-//            ArrayList<SmsModel.Sms> smss = SmsModel.getSmss(smsDb,
+        SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(activity);
+//            ArrayList<SmsSqliteHandler.Sms> smss = SmsSqliteHandler.getSmss(smsDb,
 //                    getArguments().getString("addr"), 0, 1000);
-//            ArrayList<SmsModel.Sms> smss = SmsModel.getSmssFromContentResolver(activity,
+//            ArrayList<SmsSqliteHandler.Sms> smss = SmsSqliteHandler.getSmssFromContentResolver(activity,
 //                    getArguments().getString("addr"), 0, 10);
         ArrayList<Sms> smss = Sms.getSmssFromBoth(smsDb, activity,
                 addr, 0, 1000);
@@ -154,14 +153,14 @@ public class ConversationPage extends Fragment {
 //        MainActivity activity = (MainActivity) getActivity();
 //
 //        int currPage = activity.getSmsMapCurrPage().get(addr);
-//        HashMap<String, ArrayList<SmsModel.Sms>> smssMap = activity.getSmssMap();
-//        ArrayList<SmsModel.Sms> smss = smssMap.get(addr);
+//        HashMap<String, ArrayList<SmsSqliteHandler.Sms>> smssMap = activity.getSmssMap();
+//        ArrayList<SmsSqliteHandler.Sms> smss = smssMap.get(addr);
 //        if (smss == null) {
 //            checkOrRefresh();
 //            return;
 //        }
 //
-//        SQLiteDatabase smsDb = SmsModel.openDb(activity);
-//        smss.addAll(SmsModel.getSmssFromBoth(smsDb))
+//        SQLiteDatabase smsDb = SmsSqliteHandler.openDb(activity);
+//        smss.addAll(SmsSqliteHandler.getSmssFromBoth(smsDb))
 //    }
 }
