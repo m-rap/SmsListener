@@ -12,12 +12,16 @@ import java.util.Collections;
 public class Sms {
     private static final String TAG = "model.Sms";
 
+    public static final int SOURCE_CONTENTPROVIDER = 0;
+    public static final int SOURCE_SQLITE = 1;
+
     public int id;
     public long date;
     public String addr;
     public String body;
     public int type = Telephony.Sms.MESSAGE_TYPE_INBOX;
     public boolean read = false;
+    public int source = SOURCE_CONTENTPROVIDER;
 
     private final static int CURRENT_DB_VER = 1;
 

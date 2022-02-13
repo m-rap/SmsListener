@@ -149,13 +149,14 @@ public class SmsContentProviderHandler {
         return res;
     }
 
-    public static ArrayList<Sms> getSmssFromContentResolver(
-            Context context) {
+    public static ArrayList<Sms> getSmss(
+            Context context, String selection, String orderBy, int offset, int limit,
+            Callback<Sms> onEach) {
         ArrayList<Sms> res = new ArrayList<>();
 
         ContentResolver cr = context.getContentResolver();
-        Cursor c = cr.query(Telephony.Sms.Inbox.CONTENT_URI, null, null,
-                null, Telephony.Sms.DATE + " DESC");
+        Cursor c = cr.query(Telephony.Sms.Inbox.CONTENT_URI, null, selection,
+                null, orderBy);
         if (c == null) {
             return res;
         }
@@ -167,18 +168,22 @@ public class SmsContentProviderHandler {
         int idxTime = c.getColumnIndexOrThrow(Telephony.Sms.DATE);
         int idxAddr = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS);
         int idxBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY);
-//        int idxType = c.getColumnIndexOrThrow(Telephony.Sms.TYPE);
+        int idxType = c.getColumnIndexOrThrow(Telephony.Sms.TYPE);
         int idxRead = c.getColumnIndexOrThrow(Telephony.Sms.READ);
 
         do {
             String rowAddr = c.getString(idxAddr);
             Sms row = new Sms() {{
+                source = SOURCE_CONTENTPROVIDER;
                 addr = rowAddr;
                 body = c.getString(idxBody);
                 date = c.getLong(idxTime);
-                type = Telephony.Sms.MESSAGE_TYPE_INBOX;
+                type = (int)c.getLong(idxType);
                 read = c.getInt(idxRead) != 0;
             }};
+            if (onEach != null) {
+                onEach.onCallback(row);
+            }
             res.add(row);
         } while (c.moveToNext());
         c.close();
