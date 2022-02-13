@@ -116,7 +116,6 @@ public class ConversationPage extends Fragment {
         if (smss == null) {
             Log.d(TAG, "smss null, refreshing");
             smss = refresh();
-            smssMap.put(addr, smss);
         }
 
 //            long startMs = System.currentTimeMillis();
@@ -151,6 +150,8 @@ public class ConversationPage extends Fragment {
         smsDb.close();
 
         Log.d(TAG, "loaded " + smss.size() + " smss");
+
+        activity.getSmssMap().put(addr, smss);
 
         return smss;
     }
