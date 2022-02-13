@@ -3,6 +3,9 @@ package com.mrap.smslistener;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -46,6 +49,8 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
         this.smss = smss;
     }
 
+    private Drawable defaultBg = null;
+
     @NonNull
     @Override
     public MessageViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
@@ -63,6 +68,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
             itemView = LayoutInflater.from(parent.getContext()).
                     inflate(R.layout.view_message, parent,
                             false);
+            defaultBg = itemView.getBackground();
         }
         return new MessageViewHolder(itemView, viewType);
     }
@@ -98,5 +104,14 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
 
         holder.txtMsg.setText(sms.body);
         holder.txtDate.setText(sdf.format(sms.date));
+
+        if (sms.source == Sms.SOURCE_SQLITE) {
+//            viewSms.setBackground(new ColorDrawable(Color.parseColor("#1C8F8F")));
+            viewSms.setBackground(new ColorDrawable(Color.parseColor("#FFDADA")));
+        } else {
+            if (defaultBg != null) {
+                viewSms.setBackground(defaultBg);
+            }
+        }
     }
 }

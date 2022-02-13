@@ -1,6 +1,8 @@
 package com.mrap.smslistener;
 
 import android.content.Context;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -78,6 +80,12 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
 
         TextView msgTv = viewSms.findViewById(R.id.idxrow_content);
         msgTv.setText(sms.body);
+
+        if (sms.source == Sms.SOURCE_SQLITE) {
+            viewSms.setBackground(new ColorDrawable(Color.parseColor("#FFDADA")));
+        } else {
+            viewSms.setBackground(null);
+        }
     }
 
     @Override

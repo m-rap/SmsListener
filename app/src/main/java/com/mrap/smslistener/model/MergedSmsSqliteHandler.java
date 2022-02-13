@@ -59,10 +59,50 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
 
             SQLiteDatabase tmpDb = openDb(context, tmpPath, createSqls);
 
-            Log.d(TAG, "begin copying from content provider");
+            ArrayList<Sms> oldSqliteSmss = new ArrayList<>();
+            ArrayList<Sms> smss;
+
+            File mergedSmsFile = new File(context.getExternalFilesDir(null) +
+                    "/" + mergedSmsRelPath);
+
+            synchronized (mergedSmsLock) {
+                if (mergedSmsFile.exists()) {
+                    SQLiteDatabase mergedSmsDb = openDb(context);
+
+                    Log.d(TAG, "getting smss from old db which source is not content " +
+                            "provider source");
+                    smss = getSmss(mergedSmsDb, "sms_source=" + Sms.SOURCE_SQLITE,
+                            "sms_timems DESC", 0, 0, null);
+                    oldSqliteSmss.addAll(smss);
+                    Log.d(TAG, "got " + oldSqliteSmss.size() + " smss");
+
+                    mergedSmsDb.close();
+                }
+            }
+
+            long oldestOldSmsDate = oldSqliteSmss.size() > 0 ?
+                    oldSqliteSmss.get(oldSqliteSmss.size() - 1).date : -1;
+
             tmpDb.beginTransaction();
-            ArrayList<Sms> smss = SmsContentProviderHandler.getSmss(context, null,
-                    null, 0, 0, sms -> {
+
+            int[] removedOldSqliteSmss = new int[] {0};
+
+            Log.d(TAG, "begin copying from content provider");
+            smss = SmsContentProviderHandler.getSmss(context, null,
+                    Telephony.Sms.DATE + " DESC", 0, 0, sms -> {
+                        if (oldestOldSmsDate > 0 && oldestOldSmsDate - sms.date < 30000) {
+                            // remove already updated in content provider
+                            for (int i = oldSqliteSmss.size() - 1; i >= 0; i--) {
+                                Sms dbSms = oldSqliteSmss.get(i);
+                                if (Math.abs(dbSms.date - sms.date) < 30000 &&
+                                        dbSms.addr.equals(sms.addr) &&
+                                        dbSms.body.equals(sms.body)) {
+                                    oldSqliteSmss.remove(i);
+                                    removedOldSqliteSmss[0]++;
+                                }
+                            }
+                        }
+
                         String insertSql = "INSERT INTO sms (sms_source, sms_addr, sms_body, " +
                                 "sms_type, sms_timems, sms_read) VALUES (?, ?, ?, ?, ?, ?)";
                         SQLiteStatement statement = tmpDb.compileStatement(insertSql);
@@ -75,46 +115,39 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
                         statement.bindLong(6, sms.read ? 1 : 0);
                         statement.executeInsert();
                     });
+            Log.d(TAG, "copied " + smss.size() + " smss. removed old sqlite smss: " +
+                    removedOldSqliteSmss[0]);
+
+            Log.d(TAG, "inserting old sqlite smss, if there is still remaining: " +
+                    oldSqliteSmss.size());
+            for (int i = 0; i < oldSqliteSmss.size(); i++) {
+                Sms sms = oldSqliteSmss.get(i);
+                String insertSql = "INSERT INTO sms (sms_source, sms_addr, " +
+                        "sms_body, sms_type, sms_timems, sms_read) VALUES " +
+                        "(?, ?, ?, ?, ?, ?)";
+                SQLiteStatement statement = tmpDb.compileStatement(insertSql);
+                statement.clearBindings();
+                statement.bindLong(1, Sms.SOURCE_SQLITE);
+                statement.bindString(2, sms.addr);
+                statement.bindString(3, sms.body);
+                statement.bindLong(4, sms.type);
+                statement.bindLong(5, sms.date);
+                statement.bindLong(6, sms.read ? 1 : 0);
+                statement.executeInsert();
+            }
+
             tmpDb.setTransactionSuccessful();
             tmpDb.endTransaction();
-            Log.d(TAG, "copied " + smss.size() + " smss");
+
+            tmpDb.close();
 
             synchronized (mergedSmsLock) {
-                File mergedSmsFile = new File(context.getExternalFilesDir(null) +
-                        "/" + mergedSmsRelPath);
-                if (mergedSmsFile.exists()) {
-                    SQLiteDatabase mergedSmsDb = openDb(context);
-                    Log.d(TAG, "begin copying from old db for non content provider source");
-                    tmpDb.beginTransaction();
-                    smss = getSmss(mergedSmsDb, "sms_source=" + Sms.SOURCE_SQLITE, null,
-                            0, 0, sms -> {
-                                String insertSql = "INSERT INTO sms (sms_source, sms_addr, " +
-                                        "sms_body, sms_type, sms_timems, sms_read) VALUES " +
-                                        "(?, ?, ?, ?, ?, ?)";
-                                SQLiteStatement statement = tmpDb.compileStatement(insertSql);
-                                statement.clearBindings();
-                                statement.bindLong(1, Sms.SOURCE_SQLITE);
-                                statement.bindString(2, sms.addr);
-                                statement.bindString(3, sms.body);
-                                statement.bindLong(4, sms.type);
-                                statement.bindLong(5, sms.date);
-                                statement.bindLong(6, sms.read ? 1 : 0);
-                                statement.executeInsert();
-                            });
-                    tmpDb.setTransactionSuccessful();
-                    tmpDb.endTransaction();
-                    Log.d(TAG, "copied " + smss.size() + " smss");
-
-                    mergedSmsDb.close();
-
-                    mergedSmsFile.delete();
-                }
-                tmpDb.close();
-
+                mergedSmsFile.delete();
                 Log.d(TAG, "renaming tmp to db");
                 tmpFile.renameTo(mergedSmsFile);
             }
         }
+
     }
 
     public static void insertSms(
@@ -146,9 +179,10 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
             int idxBody = c.getColumnIndex("sms_body");
             int idxType = c.getColumnIndex("sms_type");
             int idxRead = c.getColumnIndex("sms_read");
+            int idxSource = c.getColumnIndex("sms_source");
             do {
                 Sms sms = new Sms() {{
-                    source = SOURCE_SQLITE;
+                    source = c.getInt(idxSource);
                     addr = c.getString(idxAddr);
                     body = c.getString(idxBody);
                     type = c.getInt(idxType);

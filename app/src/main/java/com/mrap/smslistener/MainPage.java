@@ -8,8 +8,12 @@ import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuInflater;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -40,9 +44,12 @@ public class MainPage extends Fragment {
     @Override
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         MainActivity activity = (MainActivity) getActivity();
+
         Toolbar toolbar = view.findViewById(R.id.main_toolbar);
         toolbar.setTitle("Sms Listener");
         activity.setSupportActionBar(toolbar);
+        setHasOptionsMenu(true);
+
         smsUIReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
@@ -56,6 +63,7 @@ public class MainPage extends Fragment {
                 });
             }
         };
+
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("smsUIReceiver");
         activity.registerReceiver(smsUIReceiver, intentFilter);
@@ -66,6 +74,31 @@ public class MainPage extends Fragment {
         executorService.submit(() -> {
             checkOrRefresh();
         });
+    }
+
+    @Override
+    public void onCreateOptionsMenu(@NonNull Menu menu, @NonNull MenuInflater inflater) {
+        super.onCreateOptionsMenu(menu, inflater);
+        Log.d(TAG, "onCreateOptionsMenu");
+        inflater.inflate(R.menu.main, menu);
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(@NonNull MenuItem item) {
+        if (item.getItemId() == R.id.main_sync) {
+            executorService.submit(() -> {
+                MainActivity activity = (MainActivity) getActivity();
+                MergedSmsSqliteHandler.syncContentProvider(activity);
+                activity.runOnUiThread(() -> {
+                    Toast.makeText(activity, "Sync done", Toast.LENGTH_SHORT).show();
+                });
+                ArrayList<Sms> smss = refresh();
+                renderSmss(smss);
+            });
+            return true;
+        } else {
+            return super.onOptionsItemSelected(item);
+        }
     }
 
     @Override
