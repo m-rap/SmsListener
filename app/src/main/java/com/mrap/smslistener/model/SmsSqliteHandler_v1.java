@@ -14,15 +14,16 @@ import java.util.HashSet;
 public class SmsSqliteHandler_v1 extends SqliteHandler {
     private static final String TAG = "SmsSqliteHandler_v1";
 
-    private final static String onCreateSql_1 = "" +
+    private final static String[] onCreateSql_1 = {"" +
             "CREATE TABLE IF NOT EXISTS sms (\n" +
             "   sms_id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
             "   sms_addr TEXT,\n" +
             "   sms_body TEXT,\n" +
             "   sms_timems INTEGER,\n" +
             "   sms_read INTEGER\n" +
-            ");" +
-            "CREATE INDEX IF NOT EXISTS idx_sms_addr ON sms(sms_addr);";
+            ")", "" +
+            "CREATE INDEX IF NOT EXISTS idx_sms_addr ON sms(sms_addr)"
+    };
 
     public static SQLiteDatabase openDb(Context context) {
         return openDb(context, context.getExternalFilesDir(null) + "/sms.v1.db",
@@ -53,12 +54,14 @@ public class SmsSqliteHandler_v1 extends SqliteHandler {
         smsDb.endTransaction();
     }
 
-    public static ArrayList<Sms> getSmss(SQLiteDatabase smsDb, int offset, int limit) {
+    public static ArrayList<Sms> getSmss(
+            SQLiteDatabase smsDb, String selection, String orderBy, int offset, int limit,
+            Callback<Sms> onEach) {
         ArrayList<Sms> res = new ArrayList<>();
 
         Cursor c = smsDb.query("sms", new String[] {"sms_id", "sms_addr", "sms_body",
-                        "sms_timems", "sms_read"}, null, null, null,
-                null, "sms_timems DESC", Sms.createLimit(offset, limit, true));
+                        "sms_timems", "sms_read"}, selection, null, null,
+                null, orderBy, Sms.createLimit(offset, limit, true));
 
         if (!c.moveToFirst()) {
             c.close();
@@ -78,7 +81,11 @@ public class SmsSqliteHandler_v1 extends SqliteHandler {
                 body = c.getString(bodyIdx);
                 type = Telephony.Sms.MESSAGE_TYPE_INBOX;
                 read = c.getInt(readIdx) != 0;
+                source = SOURCE_SQLITE;
             }};
+            if (onEach != null) {
+                onEach.onCallback(row);
+            }
             res.add(row);
         } while (c.moveToNext());
 
@@ -185,7 +192,7 @@ public class SmsSqliteHandler_v1 extends SqliteHandler {
     }
 
     public static void cleanupDbAlreadyInContentResolver(SQLiteDatabase smsDb, Context context) {
-        ArrayList<Sms> dbSmss = SmsSqliteHandler_v1.getSmss(smsDb, -1, -1);
+        ArrayList<Sms> dbSmss = SmsSqliteHandler_v1.getSmss(smsDb, null, null, -1, -1, null);
         ArrayList<Sms> matchedSmss = SmsContentProviderHandler.getSmssFromContentResolver(context, dbSmss);
 
         if (matchedSmss.size() == 0) {

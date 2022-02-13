@@ -18,6 +18,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.mrap.smslistener.model.MergedSmsSqliteHandler;
 import com.mrap.smslistener.model.Sms;
 import com.mrap.smslistener.model.SmsSqliteHandler_v1;
 
@@ -135,13 +136,18 @@ public class ConversationPage extends Fragment {
 
 //        int currPage = activity.getSmsMapCurrPage().get(addr);
 
-        SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(activity);
-//            ArrayList<SmsSqliteHandler.Sms> smss = SmsSqliteHandler.getSmss(smsDb,
-//                    getArguments().getString("addr"), 0, 1000);
-//            ArrayList<SmsSqliteHandler.Sms> smss = SmsSqliteHandler.getSmssFromContentResolver(activity,
-//                    getArguments().getString("addr"), 0, 10);
-        ArrayList<Sms> smss = Sms.getSmssFromBoth(smsDb, activity,
-                addr, 0, 1000);
+//        SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(activity);
+////            ArrayList<SmsSqliteHandler.Sms> smss = SmsSqliteHandler.getSmss(smsDb,
+////                    getArguments().getString("addr"), 0, 1000);
+////            ArrayList<SmsSqliteHandler.Sms> smss = SmsSqliteHandler.getSmssFromContentResolver(activity,
+////                    getArguments().getString("addr"), 0, 10);
+//        ArrayList<Sms> smss = Sms.getSmssFromBoth(smsDb, activity,
+//                addr, 0, 1000);
+//        smsDb.close();
+
+        SQLiteDatabase smsDb = MergedSmsSqliteHandler.openDb(activity);
+        ArrayList<Sms> smss = MergedSmsSqliteHandler.getSmss(smsDb, "sms_addr = '" +
+                        addr + "'", "sms_timems DESC", 0, 1000, null);
         smsDb.close();
 
         Log.d(TAG, "loaded " + smss.size() + " smss");

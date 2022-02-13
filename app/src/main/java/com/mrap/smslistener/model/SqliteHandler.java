@@ -8,13 +8,15 @@ import android.util.Log;
 public class SqliteHandler {
     private static final String TAG = "SqliteHandler";
 
-    public static SQLiteDatabase openDb(Context context, String path, String createSql) {
+    public static SQLiteDatabase openDb(Context context, String path, String[] createSqls) {
         Log.d(TAG, "opening db");
         SQLiteOpenHelper sqLiteOpenHelper = new SQLiteOpenHelper(context,
                 path, null, 1) {
             @Override
             public void onCreate(SQLiteDatabase db) {
-                db.execSQL(createSql);
+                for (String sql : createSqls) {
+                    db.execSQL(sql);
+                }
             }
 
             @Override

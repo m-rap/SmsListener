@@ -17,6 +17,7 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.mrap.smslistener.model.MergedSmsSqliteHandler;
 import com.mrap.smslistener.model.Sms;
 import com.mrap.smslistener.model.SmsSqliteHandler_v1;
 
@@ -101,12 +102,17 @@ public class MainPage extends Fragment {
     private ArrayList<Sms> refresh() {
         MainActivity activity = (MainActivity) getActivity();
         try {
-            SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(activity);
-//            ArrayList<SmsSqliteHandler.Sms> lastSmss = SmsSqliteHandler.getLastSmss(smsDb, 0, 1000);
-//                ArrayList<SmsSqliteHandler.Sms> lastSmss = SmsSqliteHandler.getLastSmssFromContentResolver(activity,
-//                        0, 1000);
-            ArrayList<Sms> lastSmss = Sms.getLastSmssFromBoth(smsDb, activity,
-                    0, 1000);
+//            SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(activity);
+////            ArrayList<SmsSqliteHandler.Sms> lastSmss = SmsSqliteHandler.getLastSmss(smsDb, 0, 1000);
+////                ArrayList<SmsSqliteHandler.Sms> lastSmss = SmsSqliteHandler.getLastSmssFromContentResolver(activity,
+////                        0, 1000);
+//            ArrayList<Sms> lastSmss = Sms.getLastSmssFromBoth(smsDb, activity,
+//                    0, 1000);
+//            smsDb.close();
+
+            SQLiteDatabase smsDb = MergedSmsSqliteHandler.openDb(activity);
+            ArrayList<Sms> lastSmss = MergedSmsSqliteHandler.getLastSmss(smsDb, 0, 1000,
+                    null);
             smsDb.close();
 
             Log.d(TAG, "loaded sms " + lastSmss.size());

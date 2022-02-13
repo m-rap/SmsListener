@@ -8,7 +8,6 @@ import androidx.core.content.ContextCompat;
 import android.Manifest;
 import android.content.Context;
 import android.content.pm.PackageManager;
-import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.view.ContextThemeWrapper;
 import android.view.Gravity;
@@ -16,8 +15,8 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.mrap.smslistener.model.MergedSmsSqliteHandler;
 import com.mrap.smslistener.model.Sms;
-import com.mrap.smslistener.model.SmsSqliteHandler_v1;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -70,17 +69,28 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
-        Sms.migrateToLatestVersion(this);
+//        Sms.migrateToLatestVersion(this);
+//
+//        SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(this);
+//        SmsSqliteHandler_v1.cleanupDbAlreadyInContentResolver(smsDb, this);
+//        smsDb.close();
 
-        SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(this);
-        SmsSqliteHandler_v1.cleanupDbAlreadyInContentResolver(smsDb, this);
-        smsDb.close();
+        if (!MergedSmsSqliteHandler.isDbExists(this)) {
+            MergedSmsSqliteHandler.migrateToMergedSms(this);
+            MergedSmsSqliteHandler.syncContentProvider(this);
+        }
 
         MainPage mainPage = new MainPage();
         getSupportFragmentManager().
                 beginTransaction().
                 replace(R.id.actmain_framelayout, mainPage, null).
                 commit();
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        MergedSmsSqliteHandler.syncContentProvider(this);
     }
 
     public ArrayList<Sms> getLastSmss() {
