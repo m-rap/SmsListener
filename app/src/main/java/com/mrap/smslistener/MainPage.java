@@ -1,9 +1,5 @@
 package com.mrap.smslistener;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Log;
@@ -21,9 +17,9 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.mrap.smslistener.model.Callback;
 import com.mrap.smslistener.model.MergedSmsSqliteHandler;
 import com.mrap.smslistener.model.Sms;
-import com.mrap.smslistener.model.SmsSqliteHandler_v1;
 
 import java.util.ArrayList;
 import java.util.concurrent.ExecutorService;
@@ -33,7 +29,8 @@ public class MainPage extends Fragment {
 
     private static final String TAG = "MainPage";
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-    private BroadcastReceiver smsUIReceiver;
+//    private BroadcastReceiver smsUIReceiver;
+    private Callback onSmssUpdated;
 
     @Nullable
     @Override
@@ -50,23 +47,16 @@ public class MainPage extends Fragment {
         activity.setSupportActionBar(toolbar);
         setHasOptionsMenu(true);
 
-        smsUIReceiver = new BroadcastReceiver() {
+        onSmssUpdated = new Callback() {
             @Override
-            public void onReceive(Context context, Intent intent) {
-                if (intent == null) {
-                    return;
-                }
-
+            public void onCallback(Object arg) {
                 executorService.submit(() -> {
                     ArrayList<Sms> smss = refresh();
                     renderSmss(smss);
                 });
             }
         };
-
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction("smsUIReceiver");
-        activity.registerReceiver(smsUIReceiver, intentFilter);
+        activity.getOnSmssUpdatedListeners().add(onSmssUpdated);
 
         RecyclerView recyclerView = view.findViewById(R.id.main_listConversation);
         recyclerView.setAdapter(new ConversationAdapter(activity, new ArrayList<>()));
@@ -88,12 +78,18 @@ public class MainPage extends Fragment {
         if (item.getItemId() == R.id.main_sync) {
             executorService.submit(() -> {
                 MainActivity activity = (MainActivity) getActivity();
-                MergedSmsSqliteHandler.syncContentProvider(activity);
-                activity.runOnUiThread(() -> {
-                    Toast.makeText(activity, "Sync done", Toast.LENGTH_SHORT).show();
-                });
-                ArrayList<Sms> smss = refresh();
-                renderSmss(smss);
+                int res = MergedSmsSqliteHandler.syncContentProvider(activity);
+                if (res == 0) {
+                    activity.runOnUiThread(() -> {
+                        Toast.makeText(activity, "Sync done", Toast.LENGTH_SHORT).show();
+                    });
+                    ArrayList<Sms> smss = refresh();
+                    renderSmss(smss);
+                } else if (res == -2) {
+                    activity.runOnUiThread(() -> {
+                        Toast.makeText(activity, "Sync error", Toast.LENGTH_SHORT).show();
+                    });
+                }
             });
             return true;
         } else {
@@ -104,7 +100,7 @@ public class MainPage extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        getActivity().unregisterReceiver(smsUIReceiver);
+        ((MainActivity) getActivity()).getOnSmssUpdatedListeners().remove(onSmssUpdated);
     }
 
     private void renderSmss(ArrayList<Sms> smss) {

@@ -6,7 +6,10 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.view.ContextThemeWrapper;
@@ -15,6 +18,7 @@ import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import com.mrap.smslistener.model.Callback;
 import com.mrap.smslistener.model.MergedSmsSqliteHandler;
 import com.mrap.smslistener.model.Sms;
 
@@ -28,10 +32,25 @@ public class MainActivity extends AppCompatActivity {
     private static final int REQCODE_REQPERM = 0;
 
     private ArrayList<Sms> lastSmss = null;
-    private HashMap<String, ArrayList<Sms>> smssMap = new HashMap<>();
+    private final HashMap<String, ArrayList<Sms>> smssMap = new HashMap<>();
     public final int ROW_PER_PAGE = 100;
     private int lastSmsCurrPage = 0;
     private HashMap<String, Integer> smsMapCurrPage = new HashMap<>();
+
+    private final ArrayList<Callback> onSmssUpdatedListeners = new ArrayList<>();
+
+    private final BroadcastReceiver smsUIReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            synchronized (smssMap) {
+                lastSmss = null;
+                smssMap.clear();
+                for (Callback listener : onSmssUpdatedListeners) {
+                    listener.onCallback(null);
+                }
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -80,6 +99,10 @@ public class MainActivity extends AppCompatActivity {
             MergedSmsSqliteHandler.syncContentProvider(this);
         }
 
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction("smsUIReceiver");
+        registerReceiver(smsUIReceiver, intentFilter);
+
         MainPage mainPage = new MainPage();
         getSupportFragmentManager().
                 beginTransaction().
@@ -90,7 +113,12 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        unregisterReceiver(smsUIReceiver);
         MergedSmsSqliteHandler.syncContentProvider(this);
+    }
+
+    public ArrayList<Callback> getOnSmssUpdatedListeners() {
+        return onSmssUpdatedListeners;
     }
 
     public ArrayList<Sms> getLastSmss() {

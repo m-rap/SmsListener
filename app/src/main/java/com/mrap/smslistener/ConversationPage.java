@@ -3,7 +3,6 @@ package com.mrap.smslistener;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.util.Log;
@@ -18,9 +17,9 @@ import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.mrap.smslistener.model.Callback;
 import com.mrap.smslistener.model.MergedSmsSqliteHandler;
 import com.mrap.smslistener.model.Sms;
-import com.mrap.smslistener.model.SmsSqliteHandler_v1;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -31,7 +30,7 @@ public class ConversationPage extends Fragment {
     private static final String TAG = "ChatPage";
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private String addr;
-    private BroadcastReceiver smsUIReceiver;
+    private Callback onSmssUpdated;
 
     @Nullable
     @Override
@@ -48,22 +47,15 @@ public class ConversationPage extends Fragment {
         toolbar.setTitle(addr);
         activity.setSupportActionBar(toolbar);
 
-        smsUIReceiver = new BroadcastReceiver() {
+        onSmssUpdated = new Callback() {
             @Override
-            public void onReceive(Context context, Intent intent) {
-                if (intent == null) {
-                    return;
-                }
-
+            public void onCallback(Object arg) {
                 executorService.submit(() -> {
                     ArrayList<Sms> smss = refresh();
                     renderMsgs(smss);
                 });
             }
         };
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction("smsUIReceiver");
-        activity.registerReceiver(smsUIReceiver, intentFilter);
 
         RecyclerView listMsg = view.findViewById(R.id.conv_listChat);
         listMsg.setAdapter(new MessageAdapter(getContext(), new ArrayList<>()));
@@ -76,7 +68,7 @@ public class ConversationPage extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        getActivity().unregisterReceiver(smsUIReceiver);
+        ((MainActivity) getActivity()).getOnSmssUpdatedListeners().remove(onSmssUpdated);
     }
 
     private void renderMsgs(ArrayList<Sms> smss) {
@@ -144,16 +136,20 @@ public class ConversationPage extends Fragment {
 //                addr, 0, 1000);
 //        smsDb.close();
 
-        SQLiteDatabase smsDb = MergedSmsSqliteHandler.openDb(activity);
-        ArrayList<Sms> smss = MergedSmsSqliteHandler.getSmss(smsDb, "sms_addr = '" +
-                        addr + "'", "sms_timems DESC", 0, 1000, null);
-        smsDb.close();
+        HashMap<String, ArrayList<Sms>> smssMap = activity.getSmssMap();
 
-        Log.d(TAG, "loaded " + smss.size() + " smss");
+        synchronized (smssMap) {
+            SQLiteDatabase smsDb = MergedSmsSqliteHandler.openDb(activity);
+            ArrayList<Sms> smss = MergedSmsSqliteHandler.getSmss(smsDb, "sms_addr = '" +
+                    addr + "'", "sms_timems DESC", 0, 1000, null);
+            smsDb.close();
 
-        activity.getSmssMap().put(addr, smss);
+            Log.d(TAG, "loaded " + smss.size() + " smss");
 
-        return smss;
+            smssMap.put(addr, smss);
+
+            return smss;
+        }
     }
 
 //    private void loadMore() {
