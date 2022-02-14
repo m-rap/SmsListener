@@ -2,6 +2,7 @@ package com.mrap.smslistener;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -29,8 +30,9 @@ public class MainPage extends Fragment {
 
     private static final String TAG = "MainPage";
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
-//    private BroadcastReceiver smsUIReceiver;
     private Callback onSmssUpdated;
+
+    private Parcelable recyclerViewState = null;
 
     @Nullable
     @Override
@@ -59,7 +61,13 @@ public class MainPage extends Fragment {
         activity.getOnSmssUpdatedListeners().add(onSmssUpdated);
 
         RecyclerView recyclerView = view.findViewById(R.id.main_listConversation);
-        recyclerView.setAdapter(new ConversationAdapter(activity, new ArrayList<>()));
+//        if (recyclerView.getAdapter() == null) {
+//            Log.d(TAG, "adapter is null, assigning");
+//            recyclerView.setAdapter(new ConversationAdapter(activity, new ArrayList<>()));
+//        }
+        if (recyclerViewState != null) {
+            recyclerView.getLayoutManager().onRestoreInstanceState(recyclerViewState);
+        }
 
         executorService.submit(() -> {
             checkOrRefresh();
@@ -101,6 +109,8 @@ public class MainPage extends Fragment {
     public void onDestroyView() {
         super.onDestroyView();
         ((MainActivity) getActivity()).getOnSmssUpdatedListeners().remove(onSmssUpdated);
+        RecyclerView recyclerView = getView().findViewById(R.id.main_listConversation);
+        recyclerViewState = recyclerView.getLayoutManager().onSaveInstanceState();
     }
 
     private void renderSmss(ArrayList<Sms> smss) {

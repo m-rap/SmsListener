@@ -58,7 +58,9 @@ public class ConversationPage extends Fragment {
         };
 
         RecyclerView listMsg = view.findViewById(R.id.conv_listChat);
-        listMsg.setAdapter(new MessageAdapter(getContext(), new ArrayList<>()));
+        if (listMsg.getAdapter() == null) {
+            listMsg.setAdapter(new MessageAdapter(getContext(), new ArrayList<>()));
+        }
 
         executorService.submit(() -> {
             checkOrRefresh();

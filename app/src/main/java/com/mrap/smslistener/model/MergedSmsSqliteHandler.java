@@ -1,6 +1,5 @@
 package com.mrap.smslistener.model;
 
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -34,7 +33,7 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
 
     private static final String mergedSmsRelPath = "mergedsms.db";
     private static final String tmpMergedSmsRelPath = "mergedsms.tmp.db";
-    private static boolean syncIsRunning = false;
+    private static boolean syncRunning = false;
 
     public static SQLiteDatabase openDb(Context context) {
         return openDb(context, context.getExternalFilesDir(null) + "/" +
@@ -42,12 +41,12 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
     }
 
     public static int syncContentProvider(Context context) {
-        if (syncIsRunning) {
+        if (syncRunning) {
             return -1;
         }
 
         int res = 0;
-        syncIsRunning = true;
+        syncRunning = true;
 
         try {
             syncContentProviderInternal(context);
@@ -56,8 +55,12 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
             res = -2;
         }
 
-        syncIsRunning = false;
+        syncRunning = false;
         return res;
+    }
+
+    public static boolean isSyncRunning() {
+        return syncRunning;
     }
 
     private static void syncContentProviderInternal(Context context) throws Exception {
@@ -138,7 +141,8 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
             Log.d(TAG, "copied " + smss.size() + " smss. removed old sqlite smss: " +
                     removedOldSqliteSmss[0]);
 
-            long newestCntPrvderSmsDate = smss.get(0).date;
+            long newestCntPrvderSmsDate = smss.size() > 0 ? smss.get(0).date :
+                    -1;
 
             Log.d(TAG, "inserting old sqlite smss, if there is still remaining: " +
                     oldSqliteSmss.size());
@@ -208,6 +212,9 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
             int idxType = c.getColumnIndex("sms_type");
             int idxRead = c.getColumnIndex("sms_read");
             int idxSource = c.getColumnIndex("sms_source");
+
+            int inCount = 0, outCount = 0;
+
             do {
                 Sms sms = new Sms() {{
                     source = c.getInt(idxSource);
@@ -217,12 +224,20 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
                     date = c.getLong(idxTime);
                     read = c.getInt(idxRead) != 0;
                 }};
+                if (sms.type == Telephony.Sms.MESSAGE_TYPE_INBOX) {
+                    inCount++;
+                } else if (sms.type == Telephony.Sms.MESSAGE_TYPE_SENT) {
+                    outCount++;
+                }
                 if (onEach != null) {
                     onEach.onCallback(sms);
                 }
                 res.add(sms);
             } while (c.moveToNext());
             c.close();
+
+            Log.d(TAG, "in " + inCount + " out " + outCount);
+
             return res;
         }
     }

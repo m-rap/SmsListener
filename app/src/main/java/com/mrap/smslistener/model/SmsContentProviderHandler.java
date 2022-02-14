@@ -4,11 +4,14 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.net.Uri;
 import android.provider.Telephony;
 import android.util.Log;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashSet;
 
 public class SmsContentProviderHandler {
@@ -154,39 +157,73 @@ public class SmsContentProviderHandler {
             Callback<Sms> onEach) {
         ArrayList<Sms> res = new ArrayList<>();
 
+//        String limitStr = Sms.createLimit(offset, limit, false);
+//        if (orderBy == null) {
+//            if (limitStr != null) {
+//                orderBy = limitStr;
+//            }
+//        } else {
+//            if (limitStr != null) {
+//                orderBy += " " + limitStr;
+//            }
+//        }
+
         ContentResolver cr = context.getContentResolver();
-        Cursor c = cr.query(Telephony.Sms.Inbox.CONTENT_URI, null, selection,
-                null, orderBy);
-        if (c == null) {
-            return res;
-        }
-        if (!c.moveToFirst()) {
-            c.close();
-            return res;
-        }
+//        Uri uri = Uri.parse("content://mms-sms/complete-conversations");
+//        Uri uri = Telephony.MmsSms.CONTENT_CONVERSATIONS_URI;
+        Uri[] uris = new Uri[] {
+                Telephony.Sms.Inbox.CONTENT_URI,
+                Telephony.Sms.Sent.CONTENT_URI
+        };
 
-        int idxTime = c.getColumnIndexOrThrow(Telephony.Sms.DATE);
-        int idxAddr = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS);
-        int idxBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY);
-        int idxType = c.getColumnIndexOrThrow(Telephony.Sms.TYPE);
-        int idxRead = c.getColumnIndexOrThrow(Telephony.Sms.READ);
-
-        do {
-            String rowAddr = c.getString(idxAddr);
-            Sms row = new Sms() {{
-                source = SOURCE_CONTENTPROVIDER;
-                addr = rowAddr;
-                body = c.getString(idxBody);
-                date = c.getLong(idxTime);
-                type = (int)c.getLong(idxType);
-                read = c.getInt(idxRead) != 0;
-            }};
-            if (onEach != null) {
-                onEach.onCallback(row);
+        for (Uri uri : uris) {
+            Cursor c = cr.query(uri, null, selection,
+                    null, null);
+            if (c == null) {
+                continue;
             }
-            res.add(row);
-        } while (c.moveToNext());
-        c.close();
+            if (!c.moveToFirst()) {
+                Log.d(TAG, uri.getPath() + " " + c.getCount() + " smss");
+                c.close();
+                continue;
+            }
+
+            int idxTime = c.getColumnIndexOrThrow(Telephony.Sms.DATE);
+            int idxAddr = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS);
+            int idxBody = c.getColumnIndexOrThrow(Telephony.Sms.BODY);
+            int idxType = c.getColumnIndexOrThrow(Telephony.Sms.TYPE);
+            int idxRead = c.getColumnIndexOrThrow(Telephony.Sms.READ);
+
+            Sms row;
+            do {
+                String rowAddr = c.getString(idxAddr);
+                row = new Sms() {{
+                    source = SOURCE_CONTENTPROVIDER;
+                    addr = rowAddr;
+                    body = c.getString(idxBody);
+                    date = c.getLong(idxTime);
+                    type = c.getInt(idxType);
+                    read = c.getInt(idxRead) != 0;
+                }};
+                if (onEach != null) {
+                    onEach.onCallback(row);
+                }
+                res.add(row);
+            } while (c.moveToNext());
+
+            Log.d(TAG, uri.getPath() + " " + c.getCount() + " smss type " + row.type +
+                    " addr " + row.addr);
+
+            c.close();
+        }
+
+        Collections.sort(res, new Comparator<Sms>() {
+            @Override
+            public int compare(Sms o1, Sms o2) {
+                return o1.date > o2.date ? -1 : o1.date == o2.date ? 0 : 1;
+            }
+        });
+
         Log.d(TAG, "done fetching content resolver smss");
 
         return res;

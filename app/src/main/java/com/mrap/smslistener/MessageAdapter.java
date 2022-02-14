@@ -37,7 +37,8 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
             if (viewType == Telephony.Sms.MESSAGE_TYPE_INBOX) {
                 txtMsg = itemView.findViewById(R.id.msgin_txtMsg);
                 txtDate = itemView.findViewById(R.id.msgin_txtDate);
-            } else if (viewType == Telephony.Sms.MESSAGE_TYPE_OUTBOX) {
+            } else if (viewType == Telephony.Sms.MESSAGE_TYPE_SENT ||
+                    viewType == Telephony.Sms.MESSAGE_TYPE_OUTBOX) {
                 txtMsg = itemView.findViewById(R.id.msgout_txtMsg);
                 txtDate = itemView.findViewById(R.id.msgout_txtDate);
             }
@@ -72,7 +73,9 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
                     inflate(R.layout.view_msg_inbox, parent,
                             false);
             defaultBg = itemView.getBackground();
-        } else if (viewType == Telephony.Sms.MESSAGE_TYPE_OUTBOX) {
+        } else if (viewType == Telephony.Sms.MESSAGE_TYPE_SENT ||
+                viewType == Telephony.Sms.MESSAGE_TYPE_OUTBOX
+        ) {
             itemView = LayoutInflater.from(parent.getContext()).
                     inflate(R.layout.view_msg_outbox, parent,
                             false);
@@ -90,7 +93,8 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
         } else {
             int type = smss.get(smss.size() - 1 - position).type;
             if (type != Telephony.Sms.MESSAGE_TYPE_INBOX &&
-                type != Telephony.Sms.MESSAGE_TYPE_OUTBOX) {
+                type != Telephony.Sms.MESSAGE_TYPE_OUTBOX &&
+                type != Telephony.Sms.MESSAGE_TYPE_SENT) {
                 type = Telephony.Sms.MESSAGE_TYPE_INBOX;
             }
             return type;
