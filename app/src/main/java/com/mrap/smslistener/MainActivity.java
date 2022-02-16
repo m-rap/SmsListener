@@ -105,7 +105,7 @@ public class MainActivity extends AppCompatActivity {
 //        smsDb.close();
 
         if (!MergedSmsSqliteHandler.isDbExists(this)) {
-            MergedSmsSqliteHandler.migrateToMergedSms(this);
+//            MergedSmsSqliteHandler.migrateToMergedSms(this);
             MergedSmsSqliteHandler.syncContentProvider(this);
         }
 

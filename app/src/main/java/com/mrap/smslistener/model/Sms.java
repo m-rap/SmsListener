@@ -15,7 +15,7 @@ public class Sms {
     public static final int SOURCE_CONTENTPROVIDER = 0;
     public static final int SOURCE_SQLITE = 1;
 
-    public int id;
+    public long id;
     public long date;
     public String addr;
     public String body;
@@ -77,34 +77,34 @@ public class Sms {
         return maxVer;
     }
 
-    public static void migrateToLatestVersion(Context context) {
-        Log.d(TAG, "migrateToLatestVersion");
-        int lastUsedVer = checkDbLastUsedVersion(context);
-        Log.d(TAG, "last used ver is " + lastUsedVer);
-        if (lastUsedVer == CURRENT_DB_VER) {
-            Log.d(TAG, "already new version");
-            return;
-        }
-        if (lastUsedVer == -1) {
-            Log.d(TAG, "no db to migrate");
-            return;
-        }
-
-        SQLiteDatabase oldVerDb;
-        ArrayList<Sms> smss;
-
-        if (lastUsedVer == 0) {
-            oldVerDb = SmsSqliteHandler.openDb_0(context);
-            smss = SmsSqliteHandler.getSmss_0(oldVerDb);
-        } else {
-            return;
-        }
-        oldVerDb.close();
-
-        SQLiteDatabase newDb = SmsSqliteHandler_v1.openDb(context);
-        SmsSqliteHandler_v1.insertSmss(newDb, smss);
-        newDb.close();
-    }
+//    public static void migrateToLatestVersion(Context context) {
+//        Log.d(TAG, "migrateToLatestVersion");
+//        int lastUsedVer = checkDbLastUsedVersion(context);
+//        Log.d(TAG, "last used ver is " + lastUsedVer);
+//        if (lastUsedVer == CURRENT_DB_VER) {
+//            Log.d(TAG, "already new version");
+//            return;
+//        }
+//        if (lastUsedVer == -1) {
+//            Log.d(TAG, "no db to migrate");
+//            return;
+//        }
+//
+//        SQLiteDatabase oldVerDb;
+//        ArrayList<Sms> smss;
+//
+//        if (lastUsedVer == 0) {
+//            oldVerDb = SmsSqliteHandler.openDb_0(context);
+//            smss = SmsSqliteHandler.getSmss_0(oldVerDb);
+//        } else {
+//            return;
+//        }
+//        oldVerDb.close();
+//
+//        SQLiteDatabase newDb = SmsSqliteHandler_v1.openDb(context);
+//        SmsSqliteHandler_v1.insertSmss(newDb, smss);
+//        newDb.close();
+//    }
 
     public static String createLimit(int offset, int limit, boolean excludeLimit) {
         String limitStr = null;
@@ -122,21 +122,21 @@ public class Sms {
         return limitStr;
     }
 
-    public static ArrayList<Sms> getLastSmssFromBoth(
-            SQLiteDatabase smsDb, Context context, int offset, int limit) throws Exception {
-        ArrayList<Sms> allSmss = SmsSqliteHandler_v1.getLastSmss(smsDb, offset, limit);
-        allSmss.addAll(SmsContentProviderHandler.getLastSmssFromContentResolver(context, offset, limit));
-        sortAndTrim(allSmss, limit);
-        return allSmss;
-    }
-
-    public static ArrayList<Sms> getSmssFromBoth(
-            SQLiteDatabase smsDb, Context context, String address, int offset, int limit) {
-        ArrayList<Sms> allSmss = SmsSqliteHandler_v1.getSmss(smsDb, address, offset, limit);
-        allSmss.addAll(SmsContentProviderHandler.getSmssFromContentResolver(context, address, offset, limit));
-        sortAndTrim(allSmss, limit);
-        return allSmss;
-    }
+//    public static ArrayList<Sms> getLastSmssFromBoth(
+//            SQLiteDatabase smsDb, Context context, int offset, int limit) throws Exception {
+//        ArrayList<Sms> allSmss = SmsSqliteHandler_v1.getLastSmss(smsDb, offset, limit);
+//        allSmss.addAll(SmsContentProviderHandler.getLastSmssFromContentResolver(context, offset, limit));
+//        sortAndTrim(allSmss, limit);
+//        return allSmss;
+//    }
+//
+//    public static ArrayList<Sms> getSmssFromBoth(
+//            SQLiteDatabase smsDb, Context context, String address, int offset, int limit) {
+//        ArrayList<Sms> allSmss = SmsSqliteHandler_v1.getSmss(smsDb, address, offset, limit);
+//        allSmss.addAll(SmsContentProviderHandler.getSmssFromContentResolver(context, address, offset, limit));
+//        sortAndTrim(allSmss, limit);
+//        return allSmss;
+//    }
 
     public static void sortAndTrim(ArrayList<Sms> smss, int limit) {
         Collections.sort(smss, (o1, o2) -> Long.compare(o2.date, o1.date));

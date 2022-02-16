@@ -17,7 +17,7 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
 
     private static final String[] createSqls = {"" +
             "CREATE TABLE IF NOT EXISTS sms (\n" +
-            "   sms_id INTEGER PRIMARY KEY AUTOINCREMENT,\n" +
+            "   sms_id INTEGER,\n" +
             "   sms_source INTEGER," +
             "   sms_addr TEXT,\n" +
             "   sms_body TEXT,\n" +
@@ -25,7 +25,9 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
             "   sms_timems INTEGER,\n" +
             "   sms_read INTEGER\n" +
             ")", "" +
-            "CREATE INDEX IF NOT EXISTS idx_sms_addr ON sms(sms_addr);"
+            "CREATE INDEX IF NOT EXISTS idx_sms_id ON sms(sms_id)",
+            "CREATE INDEX IF NOT EXISTS idx_sms_source ON sms(sms_source)",
+            "CREATE INDEX IF NOT EXISTS idx_sms_addr ON sms(sms_addr)"
     };
 
     private static final Object mergedSmsLock = new Object();
@@ -126,16 +128,17 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
                             }
                         }
 
-                        String insertSql = "INSERT INTO sms (sms_source, sms_addr, sms_body, " +
-                                "sms_type, sms_timems, sms_read) VALUES (?, ?, ?, ?, ?, ?)";
+                        String insertSql = "INSERT INTO sms (sms_id, sms_source, sms_addr, sms_body, " +
+                                "sms_type, sms_timems, sms_read) VALUES (?, ?, ?, ?, ?, ?, ?)";
                         SQLiteStatement statement = tmpDb.compileStatement(insertSql);
                         statement.clearBindings();
-                        statement.bindLong(1, Sms.SOURCE_CONTENTPROVIDER);
-                        statement.bindString(2, sms.addr);
-                        statement.bindString(3, sms.body);
-                        statement.bindLong(4, sms.type);
-                        statement.bindLong(5, sms.date);
-                        statement.bindLong(6, sms.read ? 1 : 0);
+                        statement.bindLong(1, sms.id);
+                        statement.bindLong(2, Sms.SOURCE_CONTENTPROVIDER);
+                        statement.bindString(3, sms.addr);
+                        statement.bindString(4, sms.body);
+                        statement.bindLong(5, sms.type);
+                        statement.bindLong(6, sms.date);
+                        statement.bindLong(7, sms.read ? 1 : 0);
                         statement.executeInsert();
                     });
             Log.d(TAG, "copied " + smss.size() + " smss. removed old sqlite smss: " +
@@ -152,17 +155,18 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
                 if (sms.date < newestCntPrvderSmsDate - 30000) {
                     break;
                 }
-                String insertSql = "INSERT INTO sms (sms_source, sms_addr, " +
+                String insertSql = "INSERT INTO sms (sms_id, sms_source, sms_addr, " +
                         "sms_body, sms_type, sms_timems, sms_read) VALUES " +
-                        "(?, ?, ?, ?, ?, ?)";
+                        "(?, ?, ?, ?, ?, ?, ?)";
                 SQLiteStatement statement = tmpDb.compileStatement(insertSql);
                 statement.clearBindings();
-                statement.bindLong(1, Sms.SOURCE_SQLITE);
-                statement.bindString(2, sms.addr);
-                statement.bindString(3, sms.body);
-                statement.bindLong(4, sms.type);
-                statement.bindLong(5, sms.date);
-                statement.bindLong(6, sms.read ? 1 : 0);
+                statement.bindLong(1, sms.id);
+                statement.bindLong(2, Sms.SOURCE_SQLITE);
+                statement.bindString(3, sms.addr);
+                statement.bindString(4, sms.body);
+                statement.bindLong(5, sms.type);
+                statement.bindLong(6, sms.date);
+                statement.bindLong(7, sms.read ? 1 : 0);
                 statement.executeInsert();
             }
             Log.d(TAG, "inserted " + count + " old sqlite smss, " +
@@ -184,7 +188,18 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
 
     public static void insertSms(
             SQLiteDatabase smsDb, String addr, String body, long timestamp, boolean read) {
+
+        ArrayList<Sms> smss = getSmss(smsDb, null, "sms_id DESC", 0,
+                1, null);
+        long id;
+        if (smss.size() > 0) {
+            id = smss.get(0).id + 1;
+        } else {
+            id = 1;
+        }
+
         ContentValues contentValues = new ContentValues();
+        contentValues.put("sms_id", id);
         contentValues.put("sms_addr", addr);
         contentValues.put("sms_body", body);
         contentValues.put("sms_timems", timestamp);
@@ -206,6 +221,8 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
                 c.close();
                 return res;
             }
+
+            int idxId = c.getColumnIndex("sms_id");
             int idxTime = c.getColumnIndex("sms_timems");
             int idxAddr = c.getColumnIndex("sms_addr");
             int idxBody = c.getColumnIndex("sms_body");
@@ -217,6 +234,7 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
 
             do {
                 Sms sms = new Sms() {{
+                    id = c.getLong(idxId);
                     source = c.getInt(idxSource);
                     addr = c.getString(idxAddr);
                     body = c.getString(idxBody);
@@ -301,32 +319,32 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
         return res;
     }
 
-    public static void migrateToMergedSms(Context context) {
-        synchronized (mergedSmsLock) {
-            SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(context);
-            SQLiteDatabase mergedSmsDb = openDb(context);
-            mergedSmsDb.beginTransaction();
-            SmsSqliteHandler_v1.getSmss(smsDb, null, null, 0, 0,
-                    sms -> {
-                        String insertSql = "INSERT INTO sms (sms_source, sms_addr, " +
-                                "sms_body, sms_type, sms_timems, sms_read) VALUES " +
-                                "(?, ?, ?, ?, ?, ?)";
-                        SQLiteStatement statement = mergedSmsDb.compileStatement(insertSql);
-                        statement.clearBindings();
-                        statement.bindLong(1, Sms.SOURCE_SQLITE);
-                        statement.bindString(2, sms.addr);
-                        statement.bindString(3, sms.body);
-                        statement.bindLong(4, sms.type);
-                        statement.bindLong(5, sms.date);
-                        statement.bindLong(6, sms.read ? 1 : 0);
-                        statement.executeInsert();
-                    });
-            mergedSmsDb.setTransactionSuccessful();
-            mergedSmsDb.endTransaction();
-            smsDb.close();
-            mergedSmsDb.close();
-        }
-    }
+//    public static void migrateToMergedSms(Context context) {
+//        synchronized (mergedSmsLock) {
+//            SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(context);
+//            SQLiteDatabase mergedSmsDb = openDb(context);
+//            mergedSmsDb.beginTransaction();
+//            SmsSqliteHandler_v1.getSmss(smsDb, null, null, 0, 0,
+//                    sms -> {
+//                        String insertSql = "INSERT INTO sms (sms_source, sms_addr, " +
+//                                "sms_body, sms_type, sms_timems, sms_read) VALUES " +
+//                                "(?, ?, ?, ?, ?, ?)";
+//                        SQLiteStatement statement = mergedSmsDb.compileStatement(insertSql);
+//                        statement.clearBindings();
+//                        statement.bindLong(1, Sms.SOURCE_SQLITE);
+//                        statement.bindString(2, sms.addr);
+//                        statement.bindString(3, sms.body);
+//                        statement.bindLong(4, sms.type);
+//                        statement.bindLong(5, sms.date);
+//                        statement.bindLong(6, sms.read ? 1 : 0);
+//                        statement.executeInsert();
+//                    });
+//            mergedSmsDb.setTransactionSuccessful();
+//            mergedSmsDb.endTransaction();
+//            smsDb.close();
+//            mergedSmsDb.close();
+//        }
+//    }
 
     public static boolean isDbExists(Context context) {
         File file = new File(context.getExternalFilesDir(null) + "/" +

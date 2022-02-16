@@ -12,8 +12,6 @@ import android.telephony.SmsMessage;
 import android.util.Log;
 
 import com.mrap.smslistener.model.MergedSmsSqliteHandler;
-import com.mrap.smslistener.model.SmsSqliteHandler_v1;
-import com.mrap.smslistener.model.SqliteHandler;
 
 public class SmsReceiver extends BroadcastReceiver {
 
@@ -31,7 +29,6 @@ public class SmsReceiver extends BroadcastReceiver {
 
         SmsMessage[] smss = new SmsMessage[pdus.length];
 
-//        SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(context);
         SQLiteDatabase mergedSmsDb = MergedSmsSqliteHandler.openDb(context);
 
         for (int i = 0; i < smss.length; i++) {
@@ -47,7 +44,6 @@ public class SmsReceiver extends BroadcastReceiver {
 
             Log.d(TAG, "got sms from: " + number);
 
-//            SmsSqliteHandler_v1.insertSms(smsDb, number, message, timestamp, false);
             MergedSmsSqliteHandler.insertSms(mergedSmsDb, number, message, timestamp, false);
 
             Notification notification = NotificationFactory.createNotification(context, MainActivity.class, 0, number, message);
@@ -55,7 +51,6 @@ public class SmsReceiver extends BroadcastReceiver {
             notifManager.notify(0, notification);
         }
 
-//        smsDb.close();
         mergedSmsDb.close();
 
         Intent broadcastLocal = new Intent();

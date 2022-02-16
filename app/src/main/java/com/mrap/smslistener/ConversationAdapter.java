@@ -3,6 +3,7 @@ package com.mrap.smslistener;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
+import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -20,6 +21,7 @@ import java.util.ArrayList;
 public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapter.ConversationViewHolder> {
 
     private static final String TAG = "ConversationAdapter";
+    private Drawable defaultBg = null;
 
     public ConversationAdapter(Context context, ArrayList<Sms> smss) {
         this.context = context;
@@ -45,9 +47,12 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
 //        if (viewHolderCount % 10 == 0) {
 //            Log.d(TAG, "viewHolderCount " + viewHolderCount);
 //        }
-        return new ConversationViewHolder(
-                LayoutInflater.from(parent.getContext()).inflate(R.layout.view_conversation_item,
-                        parent, false));
+        View itemView = LayoutInflater.from(parent.getContext()).inflate(R.layout.view_conversation_item,
+                parent, false);
+        if (defaultBg == null) {
+            defaultBg = itemView.getBackground();
+        }
+        return new ConversationViewHolder(itemView);
     }
 
     @Override
@@ -81,11 +86,12 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
         TextView msgTv = viewSms.findViewById(R.id.idxrow_content);
         msgTv.setText(sms.body);
 
-        if (sms.source == Sms.SOURCE_SQLITE) {
-            viewSms.setBackground(new ColorDrawable(Color.parseColor("#FFDADA")));
-        } else {
-            viewSms.setBackground(null);
-        }
+//        if (sms.source == Sms.SOURCE_SQLITE) {
+//            viewSms.setBackground(new ColorDrawable(Color.parseColor("#FFDADA")));
+//        } else {
+//            if (defaultBg != null)
+//                viewSms.setBackground(defaultBg);
+//        }
     }
 
     @Override
