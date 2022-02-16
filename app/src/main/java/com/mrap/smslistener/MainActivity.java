@@ -1,20 +1,24 @@
 package com.mrap.smslistener;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
+import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.os.IBinder;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.Gravity;
+import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.TextView;
@@ -91,6 +95,9 @@ public class MainActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_main);
 
+        View view = findViewById(R.id.actmain_cover);
+        view.setOnClickListener(v -> {});
+
 //        Sms.migrateToLatestVersion(this);
 //
 //        SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(this);
@@ -113,11 +120,45 @@ public class MainActivity extends AppCompatActivity {
                 commit();
     }
 
+    public static class SyncService extends Service {
+
+        @Override
+        public int onStartCommand(Intent intent, int flags, int startId) {
+            MergedSmsSqliteHandler.syncContentProvider(this);
+            return START_NOT_STICKY;
+        }
+
+        @Nullable
+        @Override
+        public IBinder onBind(Intent intent) {
+            return null;
+        }
+    }
+
+//    @Override
+//    public void onBackPressed() {
+//        if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
+//            super.onBackPressed();
+//            return;
+//        }
+//
+//        View view = findViewById(R.id.actmain_cover);
+//        view.setVisibility(View.VISIBLE);
+//
+//        new Thread(() -> {
+//            MergedSmsSqliteHandler.syncContentProvider(this);
+//            runOnUiThread(() -> {
+//                finish();
+//            });
+//        }).start();
+//    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "onDestroy");
         unregisterReceiver(smsUIReceiver);
-        MergedSmsSqliteHandler.syncContentProvider(this);
+        startService(new Intent(this, SyncService.class));
     }
 
     public ArrayList<Callback> getOnSmssUpdatedListeners() {

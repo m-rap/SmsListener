@@ -61,12 +61,10 @@ public class MainPage extends Fragment {
         activity.getOnSmssUpdatedListeners().add(onSmssUpdated);
 
         RecyclerView recyclerView = view.findViewById(R.id.main_listConversation);
-//        if (recyclerView.getAdapter() == null) {
-//            Log.d(TAG, "adapter is null, assigning");
-//            recyclerView.setAdapter(new ConversationAdapter(activity, new ArrayList<>()));
-//        }
         if (recyclerViewState != null) {
             recyclerView.getLayoutManager().onRestoreInstanceState(recyclerViewState);
+        } else {
+            recyclerView.setAdapter(new ConversationAdapter(activity, new ArrayList<>()));
         }
 
         executorService.submit(() -> {

@@ -20,6 +20,21 @@
         android:id="@+id/actmain_framelayout"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-
     </FrameLayout>
+
+
+    <LinearLayout
+        android:id="@+id/actmain_cover"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:background="#55ffffff"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:visibility="gone">
+
+        <ProgressBar
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content" />
+    </LinearLayout>
+
 </androidx.constraintlayout.widget.ConstraintLayout>
