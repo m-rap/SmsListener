@@ -27,7 +27,10 @@ import com.mrap.smslistener.model.Callback;
 import com.mrap.smslistener.model.MergedSmsSqliteHandler;
 import com.mrap.smslistener.model.Sms;
 
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.HashMap;
 
 public class MainActivity extends AppCompatActivity {
@@ -184,6 +187,31 @@ public class MainActivity extends AppCompatActivity {
     public float convertDipToPix(Context context, int dip){
         float scale = context.getResources().getDisplayMetrics().density;
         return (float)dip * scale;
+    }
+
+    private SimpleDateFormat sdfSameDay = new SimpleDateFormat("HH:mm");
+    private SimpleDateFormat sdfSameYear = new SimpleDateFormat("MMM d");
+    private SimpleDateFormat sdfDiffYear = new SimpleDateFormat("MMM d, yyyy");
+
+    public String niceDate(long date) {
+        Date now = new Date();
+
+        Calendar cal = Calendar.getInstance();
+        cal.setTime(now);
+        int nowDayOfMonth = cal.get(Calendar.DAY_OF_MONTH);
+        int nowYear = cal.get(Calendar.YEAR);
+
+        cal.setTimeInMillis(date);
+        int dayOfMonth = cal.get(Calendar.DAY_OF_MONTH);
+        int year = cal.get(Calendar.YEAR);
+
+        if (dayOfMonth == nowDayOfMonth) {
+            return sdfSameDay.format(date);
+        } else if (year == nowYear) {
+            return sdfSameYear.format(date);
+        } else {
+            return sdfDiffYear.format(date);
+        }
     }
 
     @Override

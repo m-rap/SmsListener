@@ -13,6 +13,12 @@
         android:minHeight="?attr/actionBarSize"
         android:theme="?attr/actionBarTheme" />
 
+    <View
+        android:id="@+id/view"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:background="@color/light_blue" />
+
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/main_listConversation"
         android:layout_width="match_parent"

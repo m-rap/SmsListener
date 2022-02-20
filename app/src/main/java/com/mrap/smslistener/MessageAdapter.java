@@ -126,7 +126,7 @@ public class MessageAdapter extends RecyclerView.Adapter<MessageAdapter.MessageV
         });
 
         holder.txtMsg.setText(sms.body);
-        holder.txtDate.setText(sdf.format(sms.date));
+        holder.txtDate.setText(activity.niceDate(sms.date));
 
         if (sms.source == Sms.SOURCE_SQLITE) {
 //            viewSms.setBackground(new ColorDrawable(Color.parseColor("#1C8F8F")));
