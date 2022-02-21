@@ -1,17 +1,17 @@
 package com.mrap.smslistener;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
 import android.Manifest;
-import android.app.Service;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -44,6 +44,9 @@ public class MainActivity extends AppCompatActivity {
     public final int ROW_PER_PAGE = 100;
     private int lastSmsCurrPage = 0;
     private HashMap<String, Integer> smsMapCurrPage = new HashMap<>();
+    private SyncService syncService = null;
+    private boolean receiverIsRegistered = false;
+    private boolean navigatedToMain = false;
 
     private final ArrayList<Callback> onSmssUpdatedListeners = new ArrayList<>();
 
@@ -59,6 +62,7 @@ public class MainActivity extends AppCompatActivity {
             }
         }
     };
+    private ServiceConnection syncServiceConnection = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -107,60 +111,74 @@ public class MainActivity extends AppCompatActivity {
 //        SmsSqliteHandler_v1.cleanupDbAlreadyInContentResolver(smsDb, this);
 //        smsDb.close();
 
-        if (!MergedSmsSqliteHandler.isDbExists(this)) {
-//            MergedSmsSqliteHandler.migrateToMergedSms(this);
-            MergedSmsSqliteHandler.syncContentProvider(this);
-        }
+        Callback syncCallback = arg -> {
+            Log.d(TAG, "got sync callback. notify to sms updated listeners: " +
+                    onSmssUpdatedListeners.size());
+            for (Callback listener : onSmssUpdatedListeners) {
+                listener.onCallback(null);
+            }
+        };
+
+        Log.d(TAG, "binding sync service");
+        syncServiceConnection = new ServiceConnection() {
+            @Override
+            public void onServiceConnected(ComponentName name, IBinder service) {
+                Log.d(TAG, "sync service connected");
+                syncService = ((SyncService.LocalBinder) service).getService();
+                Log.d(TAG, "sync listener: " + syncService.syncListeners.size());
+                if (!syncService.syncListeners.contains(syncCallback)) {
+                    Log.d(TAG, "adding sync listener");
+                    syncService.syncListeners.add(syncCallback);
+                }
+
+                if (navigatedToMain) {
+                    return;
+                }
+
+                Callback navigateToMain = arg -> {
+                    Log.d(TAG, "navigating to main");
+                    navigatedToMain = true;
+                    MainPage mainPage = new MainPage();
+                    getSupportFragmentManager().
+                            beginTransaction().
+                            replace(R.id.actmain_framelayout, mainPage, null).
+                            commit();
+                };
+
+                if (!MergedSmsSqliteHandler.isDbExists(syncService)) {
+                    Log.d(TAG, "db not exists, performing sync then navigate to main");
+                    syncService.sync(navigateToMain);
+                } else {
+                    navigateToMain.onCallback(null);
+                }
+            }
+
+            @Override
+            public void onServiceDisconnected(ComponentName name) {
+                Log.d(TAG, "sync service disconnected");
+                syncService.syncListeners.remove(syncCallback);
+                syncService = null;
+            }
+        };
+        bindService(new Intent(this, SyncService.class), syncServiceConnection, BIND_AUTO_CREATE);
 
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("smsUIReceiver");
         registerReceiver(smsUIReceiver, intentFilter);
-
-        MainPage mainPage = new MainPage();
-        getSupportFragmentManager().
-                beginTransaction().
-                replace(R.id.actmain_framelayout, mainPage, null).
-                commit();
+        receiverIsRegistered = true;
     }
-
-    public static class SyncService extends Service {
-
-        @Override
-        public int onStartCommand(Intent intent, int flags, int startId) {
-            MergedSmsSqliteHandler.syncContentProvider(this);
-            return START_NOT_STICKY;
-        }
-
-        @Nullable
-        @Override
-        public IBinder onBind(Intent intent) {
-            return null;
-        }
-    }
-
-//    @Override
-//    public void onBackPressed() {
-//        if (getSupportFragmentManager().getBackStackEntryCount() > 0) {
-//            super.onBackPressed();
-//            return;
-//        }
-//
-//        View view = findViewById(R.id.actmain_cover);
-//        view.setVisibility(View.VISIBLE);
-//
-//        new Thread(() -> {
-//            MergedSmsSqliteHandler.syncContentProvider(this);
-//            runOnUiThread(() -> {
-//                finish();
-//            });
-//        }).start();
-//    }
 
     @Override
     protected void onDestroy() {
         super.onDestroy();
         Log.d(TAG, "onDestroy");
-        unregisterReceiver(smsUIReceiver);
+        if (syncServiceConnection != null) {
+            Log.d(TAG, "unbinding sync service");
+            unbindService(syncServiceConnection);
+        }
+        if (receiverIsRegistered) {
+            unregisterReceiver(smsUIReceiver);
+        }
         startService(new Intent(this, SyncService.class));
     }
 

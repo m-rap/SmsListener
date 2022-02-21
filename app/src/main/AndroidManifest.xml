@@ -28,7 +28,7 @@
             </intent-filter>
         </receiver>
 
-        <service android:name=".MainActivity$SyncService" />
+        <service android:name=".SyncService" />
 
         <activity android:name=".MainActivity">
             <intent-filter>

@@ -1,5 +1,6 @@
 package com.mrap.smslistener;
 
+import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -84,18 +85,7 @@ public class MainPage extends Fragment {
         if (item.getItemId() == R.id.main_sync) {
             executorService.submit(() -> {
                 MainActivity activity = (MainActivity) getActivity();
-                int res = MergedSmsSqliteHandler.syncContentProvider(activity);
-                if (res == 0) {
-                    activity.runOnUiThread(() -> {
-                        Toast.makeText(activity, "Sync done", Toast.LENGTH_SHORT).show();
-                    });
-                    ArrayList<Sms> smss = refresh();
-                    renderSmss(smss);
-                } else if (res == -2) {
-                    activity.runOnUiThread(() -> {
-                        Toast.makeText(activity, "Sync error", Toast.LENGTH_SHORT).show();
-                    });
-                }
+                activity.startService(new Intent(activity, SyncService.class));
             });
             return true;
         } else {
