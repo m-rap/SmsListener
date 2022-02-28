@@ -8,8 +8,11 @@ import android.database.sqlite.SQLiteStatement;
 import android.provider.Telephony;
 import android.util.Log;
 
+import com.mrap.smslistener.MainActivity;
+
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashSet;
 
 public class MergedSmsSqliteHandler extends SqliteHandler {
@@ -214,9 +217,10 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
             Callback<Sms> onEach) {
         synchronized (mergedSmsLock) {
             ArrayList<Sms> res = new ArrayList<>();
+            String limitStr = Sms.createLimit(offset, limit, true);
+            Log.d(TAG, "getSmss, limit str " + limitStr);
             Cursor c = mergedSmsDb.query("sms", new String[]{"*"}, selection,
-                    null, null, null, orderBy,
-                    Sms.createLimit(offset, limit, true));
+                    null, null, null, orderBy, limitStr);
             if (!c.moveToFirst()) {
                 c.close();
                 return res;
@@ -290,6 +294,8 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
                 continue;
             }
 
+            addrSet.add(rowAddr);
+
             if (offset > 0 && offsetCount < offset) {
                 offsetCount++;
                 continue;
@@ -304,8 +310,11 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
                 read = c.getInt(idxRead) != 0;
                 source = c.getInt(idxSource);
             }};
+
+//            Log.d(TAG, "offset count " + offsetCount + " " +
+//                    MainActivity.SDF.format(new Date(row.date)));
+
             res.add(row);
-            addrSet.add(rowAddr);
             count++;
 
             if (limit > 0 && count >= limit) {

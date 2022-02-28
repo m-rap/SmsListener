@@ -38,11 +38,12 @@ public class MainActivity extends AppCompatActivity {
     private static final String TAG = "MainActivity";
 
     private static final int REQCODE_REQPERM = 0;
+    public static final int ROW_PER_PAGE = 50;
+    public static SimpleDateFormat SDF = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
 
     private ArrayList<Sms> lastSmss = null;
     private final HashMap<String, ArrayList<Sms>> smssMap = new HashMap<>();
-    public final int ROW_PER_PAGE = 100;
-    private int lastSmsCurrPage = 0;
+    public int lastSmsCurrPage = 0;
     private HashMap<String, Integer> smsMapCurrPage = new HashMap<>();
     private SyncService syncService = null;
     private boolean receiverIsRegistered = false;

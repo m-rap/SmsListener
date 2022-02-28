@@ -110,9 +110,9 @@ public class Sms {
         String limitStr = null;
         if (limit > 0) {
             if (offset > 0) {
-                limitStr = "" + limit;
-            } else {
                 limitStr = offset + "," + limit;
+            } else {
+                limitStr = "" + limit;
             }
             if (excludeLimit) {
             } else {

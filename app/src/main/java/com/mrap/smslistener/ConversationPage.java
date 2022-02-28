@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.os.Parcelable;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -31,6 +32,7 @@ public class ConversationPage extends Fragment {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private String addr;
     private Callback onSmssUpdated;
+    private Parcelable recyclerViewState = null;
 
     @Nullable
     @Override
@@ -61,6 +63,17 @@ public class ConversationPage extends Fragment {
         if (listMsg.getAdapter() == null) {
             listMsg.setAdapter(new MessageAdapter(getContext(), new ArrayList<>()));
         }
+
+        listMsg.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+
+                if (!recyclerView.canScrollVertically(-1) && newState==RecyclerView.SCROLL_STATE_IDLE) {
+                    loadMore();
+                }
+            }
+        });
 
         executorService.submit(() -> {
             checkOrRefresh();
@@ -131,19 +144,25 @@ public class ConversationPage extends Fragment {
 
 //        SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(activity);
 ////            ArrayList<SmsSqliteHandler.Sms> smss = SmsSqliteHandler.getSmss(smsDb,
-////                    getArguments().getString("addr"), 0, 1000);
+////                    getArguments().getString("addr"), 0, limit);
 ////            ArrayList<SmsSqliteHandler.Sms> smss = SmsSqliteHandler.getSmssFromContentResolver(activity,
 ////                    getArguments().getString("addr"), 0, 10);
 //        ArrayList<Sms> smss = Sms.getSmssFromBoth(smsDb, activity,
-//                addr, 0, 1000);
+//                addr, 0, limit);
 //        smsDb.close();
 
         HashMap<String, ArrayList<Sms>> smssMap = activity.getSmssMap();
+        Integer currPage = activity.getSmsMapCurrPage().get(addr);
+        if (currPage == null) {
+            currPage = 0;
+        }
+        int limit = MainActivity.ROW_PER_PAGE;
 
         synchronized (smssMap) {
             SQLiteDatabase smsDb = MergedSmsSqliteHandler.openDb(activity);
             ArrayList<Sms> smss = MergedSmsSqliteHandler.getSmss(smsDb, "sms_addr = '" +
-                    addr + "'", "sms_timems DESC", 0, 1000, null);
+                    addr + "'", "sms_timems DESC", 0,
+                    (currPage + 1) * limit, null);
             smsDb.close();
 
             Log.d(TAG, "loaded " + smss.size() + " smss");
@@ -154,18 +173,47 @@ public class ConversationPage extends Fragment {
         }
     }
 
-//    private void loadMore() {
-//        MainActivity activity = (MainActivity) getActivity();
-//
-//        int currPage = activity.getSmsMapCurrPage().get(addr);
-//        HashMap<String, ArrayList<SmsSqliteHandler.Sms>> smssMap = activity.getSmssMap();
-//        ArrayList<SmsSqliteHandler.Sms> smss = smssMap.get(addr);
-//        if (smss == null) {
-//            checkOrRefresh();
-//            return;
-//        }
-//
-//        SQLiteDatabase smsDb = SmsSqliteHandler.openDb(activity);
-//        smss.addAll(SmsSqliteHandler.getSmssFromBoth(smsDb))
-//    }
+    private void loadMore() {
+        MainActivity activity = (MainActivity) getActivity();
+
+        HashMap<String, ArrayList<Sms>> smssMap = activity.getSmssMap();
+        ArrayList<Sms> smssTmp = smssMap.get(addr);
+        if (smssTmp == null) {
+            Log.d(TAG, "smss null, refreshing");
+            smssTmp = refresh();
+            renderMsgs(smssTmp);
+            return;
+        }
+
+        ArrayList<Sms> smss = smssTmp;
+
+        Integer currPageTmp = activity.getSmsMapCurrPage().get(addr);
+        if (currPageTmp == null) {
+            currPageTmp = 0;
+        }
+        currPageTmp++;
+        int currPage = currPageTmp;
+        activity.getSmsMapCurrPage().put(addr, currPage);
+        int limit = MainActivity.ROW_PER_PAGE;
+
+        View view = getView();
+        RecyclerView listMsg = view.findViewById(R.id.conv_listChat);
+        MessageAdapter adapter = (MessageAdapter) listMsg.getAdapter();
+
+        activity.runOnUiThread(() -> {
+//            recyclerViewState = listMsg.getLayoutManager().onSaveInstanceState();
+            listMsg.setAdapter(new MessageAdapter(activity, new ArrayList<>()));
+        });
+
+        SQLiteDatabase smsDb = MergedSmsSqliteHandler.openDb(activity);
+        smss.addAll(MergedSmsSqliteHandler.getSmss(smsDb, "sms_addr = '" +
+                        addr + "'", "sms_timems DESC", currPage * limit,
+                limit, null));
+
+        activity.runOnUiThread(() -> {
+            listMsg.setAdapter(adapter);
+//            listMsg.getLayoutManager().onRestoreInstanceState(recyclerViewState);
+            listMsg.scrollToPosition(smss.size() - ((currPage) * limit));
+        });
+    }
 }

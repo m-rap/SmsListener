@@ -68,6 +68,17 @@ public class MainPage extends Fragment {
             recyclerView.setAdapter(new ConversationAdapter(activity, new ArrayList<>()));
         }
 
+        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+            @Override
+            public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
+                super.onScrollStateChanged(recyclerView, newState);
+
+                if (!recyclerView.canScrollVertically(1) && newState==RecyclerView.SCROLL_STATE_IDLE) {
+                    loadMore();
+                }
+            }
+        });
+
         executorService.submit(() -> {
             checkOrRefresh();
         });
@@ -128,18 +139,20 @@ public class MainPage extends Fragment {
 
     private ArrayList<Sms> refresh() {
         MainActivity activity = (MainActivity) getActivity();
+        int limit = MainActivity.ROW_PER_PAGE;
+
         try {
 //            SQLiteDatabase smsDb = SmsSqliteHandler_v1.openDb(activity);
-////            ArrayList<SmsSqliteHandler.Sms> lastSmss = SmsSqliteHandler.getLastSmss(smsDb, 0, 1000);
+////            ArrayList<SmsSqliteHandler.Sms> lastSmss = SmsSqliteHandler.getLastSmss(smsDb, 0, limit);
 ////                ArrayList<SmsSqliteHandler.Sms> lastSmss = SmsSqliteHandler.getLastSmssFromContentResolver(activity,
-////                        0, 1000);
+////                        0, limit);
 //            ArrayList<Sms> lastSmss = Sms.getLastSmssFromBoth(smsDb, activity,
-//                    0, 1000);
+//                    0, limit);
 //            smsDb.close();
 
             SQLiteDatabase smsDb = MergedSmsSqliteHandler.openDb(activity);
-            ArrayList<Sms> lastSmss = MergedSmsSqliteHandler.getLastSmss(smsDb, 0, 1000,
-                    null);
+            ArrayList<Sms> lastSmss = MergedSmsSqliteHandler.getLastSmss(smsDb, 0,
+                    (activity.lastSmsCurrPage + 1) * limit, null);
             smsDb.close();
 
             Log.d(TAG, "loaded sms " + lastSmss.size());
@@ -153,5 +166,36 @@ public class MainPage extends Fragment {
         }
 
         return new ArrayList<>();
+    }
+
+    private void loadMore() {
+        MainActivity activity = (MainActivity) getActivity();
+        ArrayList<Sms> lastSmss = activity.getLastSmss();
+        if (lastSmss == null) {
+            lastSmss = refresh();
+            renderSmss(lastSmss);
+            return;
+        }
+
+        View view = getView();
+        RecyclerView recyclerView = view.findViewById(R.id.main_listConversation);
+        ConversationAdapter adapter = (ConversationAdapter) recyclerView.getAdapter();
+
+        activity.runOnUiThread(() -> {
+            recyclerViewState = recyclerView.getLayoutManager().onSaveInstanceState();
+            recyclerView.setAdapter(new ConversationAdapter(activity, null));
+        });
+
+        activity.lastSmsCurrPage++;
+        SQLiteDatabase smsDb = MergedSmsSqliteHandler.openDb(activity);
+        int limit = MainActivity.ROW_PER_PAGE;
+        lastSmss.addAll(MergedSmsSqliteHandler.getLastSmss(smsDb,
+                activity.lastSmsCurrPage * limit, limit, null));
+        smsDb.close();
+
+        activity.runOnUiThread(() -> {
+            recyclerView.setAdapter(adapter);
+            recyclerView.getLayoutManager().onRestoreInstanceState(recyclerViewState);
+        });
     }
 }
