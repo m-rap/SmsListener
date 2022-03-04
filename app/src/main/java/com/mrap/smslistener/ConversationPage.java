@@ -46,7 +46,7 @@ public class ConversationPage extends Fragment {
         addr = getArguments().getString("addr");
 
         Toolbar toolbar = view.findViewById(R.id.conv_toolbar);
-        toolbar.setTitle(addr);
+        toolbar.setTitle(activity.getContactName(addr));
         activity.setSupportActionBar(toolbar);
 
         onSmssUpdated = new Callback() {

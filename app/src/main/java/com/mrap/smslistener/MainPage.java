@@ -155,6 +155,8 @@ public class MainPage extends Fragment {
                     (activity.lastSmsCurrPage + 1) * limit, null);
             smsDb.close();
 
+            activity.loadContacts(lastSmss);
+
             Log.d(TAG, "loaded sms " + lastSmss.size());
 
             activity.setLastSmss(lastSmss);
@@ -189,9 +191,12 @@ public class MainPage extends Fragment {
         activity.lastSmsCurrPage++;
         SQLiteDatabase smsDb = MergedSmsSqliteHandler.openDb(activity);
         int limit = MainActivity.ROW_PER_PAGE;
-        lastSmss.addAll(MergedSmsSqliteHandler.getLastSmss(smsDb,
-                activity.lastSmsCurrPage * limit, limit, null));
+        ArrayList<Sms> moreSmss = MergedSmsSqliteHandler.getLastSmss(smsDb,
+                activity.lastSmsCurrPage * limit, limit, null);
+        lastSmss.addAll(moreSmss);
         smsDb.close();
+
+        activity.loadContacts(moreSmss);
 
         activity.runOnUiThread(() -> {
             recyclerView.setAdapter(adapter);

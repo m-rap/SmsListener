@@ -81,7 +81,7 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
 //                viewSms.setLayoutParams(layoutParams);
 
         TextView numTv = viewSms.findViewById(R.id.idxrow_address);
-        numTv.setText(sms.addr + ", " + activity.niceDate(sms.date));
+        numTv.setText(activity.getContactName(sms.addr) + ", " + activity.niceDate(sms.date));
 
         TextView msgTv = viewSms.findViewById(R.id.idxrow_content);
         msgTv.setText(sms.body);

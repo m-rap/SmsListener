@@ -13,8 +13,11 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
+import android.provider.ContactsContract;
 import android.util.Log;
 import android.view.ContextThemeWrapper;
 import android.view.Gravity;
@@ -45,6 +48,7 @@ public class MainActivity extends AppCompatActivity {
     private final HashMap<String, ArrayList<Sms>> smssMap = new HashMap<>();
     public int lastSmsCurrPage = 0;
     private HashMap<String, Integer> smsMapCurrPage = new HashMap<>();
+    private HashMap<String, String> contactNames = new HashMap<>();
     private SyncService syncService = null;
     private boolean receiverIsRegistered = false;
     private boolean navigatedToMain = false;
@@ -84,6 +88,12 @@ public class MainActivity extends AppCompatActivity {
                 PackageManager.PERMISSION_GRANTED) {
             permErrorMsg = "App needs receive sms permission.";
             permsToReq = new String[] {Manifest.permission.RECEIVE_SMS};
+        }
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CONTACTS) !=
+                PackageManager.PERMISSION_GRANTED) {
+            permErrorMsg = "App needs receive sms permission.";
+            permsToReq = new String[] {Manifest.permission.READ_CONTACTS};
         }
 
         if (permErrorMsg != null) {
@@ -248,5 +258,66 @@ public class MainActivity extends AppCompatActivity {
             }
             recreate();
         }
+    }
+
+    public String getContactName(final String phoneNumber) {
+        String res = contactNames.get(phoneNumber);
+        if (res == null) {
+            res = phoneNumber;
+        }
+        return res;
+    }
+
+    public void loadContacts(String[] phoneNumbers) {
+//        Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
+//                Uri.encode(phoneNumbers[0]));
+        Uri uri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
+
+        Log.d(TAG, "load contacts " + uri);
+
+//        String[] projection = new String[] { ContactsContract.PhoneLookup.DISPLAY_NAME };
+
+        String[] projection = new String[] {
+                ContactsContract.CommonDataKinds.Phone.NUMBER,
+                ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME
+        };
+
+//        String contactName = phoneNumber;
+//        Cursor cursor = getContentResolver().query(uri, projection,
+//                null, null, null);
+
+        String numsStr = "";
+        for (int i = 0; i < phoneNumbers.length; i++) {
+//            numsStr += "'" + phoneNumbers[i] + "'";
+            numsStr += "?";
+            if (i < phoneNumbers.length - 1) {
+                numsStr += ", ";
+            }
+        }
+
+        Cursor cursor = getContentResolver().query(uri, projection,
+                ContactsContract.CommonDataKinds.Phone.NUMBER +
+                        " IN (" + numsStr + ")", phoneNumbers, null);
+
+        if (cursor != null) {
+            if(cursor.moveToFirst()) {
+//                contactName = cursor.getString(0);
+                do {
+                    contactNames.put(cursor.getString(0),
+                            cursor.getString(1));
+                } while (cursor.moveToNext());
+            }
+            cursor.close();
+        }
+
+//        return contactName;
+    }
+
+    public void loadContacts(ArrayList<Sms> smss) {
+        String[] nums = new String[smss.size()];
+        for (int i = 0; i < nums.length; i++) {
+            nums[i] = smss.get(i).addr;
+        }
+        loadContacts(nums);
     }
 }
