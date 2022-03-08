@@ -34,6 +34,7 @@ public class MainPage extends Fragment {
     private Callback onSmssUpdated;
 
     private Parcelable recyclerViewState = null;
+    private Callback onContactsUpdated;
 
     @Nullable
     @Override
@@ -59,7 +60,17 @@ public class MainPage extends Fragment {
                 });
             }
         };
-        activity.getOnSmssUpdatedListeners().add(onSmssUpdated);
+        activity.onSmssUpdatedListeners.add(onSmssUpdated);
+
+        onContactsUpdated = new Callback() {
+            @Override
+            public void onCallback(Object args) {
+                executorService.submit(() -> {
+                    checkOrRefresh();
+                });
+            }
+        };
+        activity.onContactUpdatedListeners.add(onContactsUpdated);
 
         RecyclerView recyclerView = view.findViewById(R.id.main_listConversation);
         if (recyclerViewState != null) {
@@ -107,7 +118,10 @@ public class MainPage extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        ((MainActivity) getActivity()).getOnSmssUpdatedListeners().remove(onSmssUpdated);
+        MainActivity activity = (MainActivity) getActivity();
+        activity.onSmssUpdatedListeners.remove(onSmssUpdated);
+        activity.onContactUpdatedListeners.remove(onContactsUpdated);
+
         RecyclerView recyclerView = getView().findViewById(R.id.main_listConversation);
         recyclerViewState = recyclerView.getLayoutManager().onSaveInstanceState();
     }
@@ -155,7 +169,7 @@ public class MainPage extends Fragment {
                     (activity.lastSmsCurrPage + 1) * limit, null);
             smsDb.close();
 
-            activity.loadContacts(lastSmss);
+//            activity.loadContacts(lastSmss);
 
             Log.d(TAG, "loaded sms " + lastSmss.size());
 
@@ -196,7 +210,7 @@ public class MainPage extends Fragment {
         lastSmss.addAll(moreSmss);
         smsDb.close();
 
-        activity.loadContacts(moreSmss);
+//        activity.loadContacts(moreSmss);
 
         activity.runOnUiThread(() -> {
             recyclerView.setAdapter(adapter);

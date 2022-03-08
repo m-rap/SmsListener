@@ -35,6 +35,8 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -52,8 +54,10 @@ public class MainActivity extends AppCompatActivity {
     private SyncService syncService = null;
     private boolean receiverIsRegistered = false;
     private boolean navigatedToMain = false;
+    private ExecutorService executorService = Executors.newSingleThreadExecutor();
 
-    private final ArrayList<Callback> onSmssUpdatedListeners = new ArrayList<>();
+    public final ArrayList<Callback> onSmssUpdatedListeners = new ArrayList<>();
+    public final ArrayList<Callback> onContactUpdatedListeners = new ArrayList<>();
 
     private final BroadcastReceiver smsUIReceiver = new BroadcastReceiver() {
         @Override
@@ -147,6 +151,12 @@ public class MainActivity extends AppCompatActivity {
                 }
 
                 Callback navigateToMain = arg -> {
+                    executorService.submit(() -> {
+                        loadContacts();
+                        for (Callback listener : onContactUpdatedListeners) {
+                            listener.onCallback(null);
+                        }
+                    });
                     Log.d(TAG, "navigating to main");
                     navigatedToMain = true;
                     MainPage mainPage = new MainPage();
@@ -191,10 +201,6 @@ public class MainActivity extends AppCompatActivity {
             unregisterReceiver(smsUIReceiver);
         }
         startService(new Intent(this, SyncService.class));
-    }
-
-    public ArrayList<Callback> getOnSmssUpdatedListeners() {
-        return onSmssUpdatedListeners;
     }
 
     public ArrayList<Sms> getLastSmss() {
@@ -268,12 +274,12 @@ public class MainActivity extends AppCompatActivity {
         return res;
     }
 
-    public void loadContacts(String[] phoneNumbers) {
+    private void loadContacts() {
 //        Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
 //                Uri.encode(phoneNumbers[0]));
         Uri uri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
 
-        Log.d(TAG, "load contacts " + uri);
+//        Log.d(TAG, "load contacts " + uri);
 
 //        String[] projection = new String[] { ContactsContract.PhoneLookup.DISPLAY_NAME };
 
@@ -283,21 +289,21 @@ public class MainActivity extends AppCompatActivity {
         };
 
 //        String contactName = phoneNumber;
-//        Cursor cursor = getContentResolver().query(uri, projection,
-//                null, null, null);
-
-        String numsStr = "";
-        for (int i = 0; i < phoneNumbers.length; i++) {
-//            numsStr += "'" + phoneNumbers[i] + "'";
-            numsStr += "?";
-            if (i < phoneNumbers.length - 1) {
-                numsStr += ", ";
-            }
-        }
-
         Cursor cursor = getContentResolver().query(uri, projection,
-                ContactsContract.CommonDataKinds.Phone.NUMBER +
-                        " IN (" + numsStr + ")", phoneNumbers, null);
+                null, null, null);
+
+//        String numsStr = "";
+//        for (int i = 0; i < phoneNumbers.length; i++) {
+////            numsStr += "'" + phoneNumbers[i] + "'";
+//            numsStr += "?";
+//            if (i < phoneNumbers.length - 1) {
+//                numsStr += ", ";
+//            }
+//        }
+
+//        Cursor cursor = getContentResolver().query(uri, projection,
+//                ContactsContract.CommonDataKinds.Phone.NUMBER +
+//                        " IN (" + numsStr + ")", phoneNumbers, null);
 
         if (cursor != null) {
             if(cursor.moveToFirst()) {
@@ -313,11 +319,11 @@ public class MainActivity extends AppCompatActivity {
 //        return contactName;
     }
 
-    public void loadContacts(ArrayList<Sms> smss) {
-        String[] nums = new String[smss.size()];
-        for (int i = 0; i < nums.length; i++) {
-            nums[i] = smss.get(i).addr;
-        }
-        loadContacts(nums);
-    }
+//    public void loadContacts(ArrayList<Sms> smss) {
+//        String[] nums = new String[smss.size()];
+//        for (int i = 0; i < nums.length; i++) {
+//            nums[i] = smss.get(i).addr;
+//        }
+//        loadContacts(nums);
+//    }
 }

@@ -44,6 +44,7 @@ public class SyncService extends Service {
 
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
+        Log.d(TAG, "onStartCommand");
         sync(null);
         return START_NOT_STICKY;
     }

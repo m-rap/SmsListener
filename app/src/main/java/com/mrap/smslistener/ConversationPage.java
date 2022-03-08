@@ -32,6 +32,7 @@ public class ConversationPage extends Fragment {
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private String addr;
     private Callback onSmssUpdated;
+    private Callback onContactsUpdated;
     private Parcelable recyclerViewState = null;
 
     @Nullable
@@ -58,6 +59,17 @@ public class ConversationPage extends Fragment {
                 });
             }
         };
+        onContactsUpdated = new Callback() {
+            @Override
+            public void onCallback(Object args) {
+                executorService.submit(() -> {
+                    checkOrRefresh();
+                });
+            }
+        };
+
+        activity.onSmssUpdatedListeners.add(onSmssUpdated);
+        activity.onContactUpdatedListeners.add(onContactsUpdated);
 
         RecyclerView listMsg = view.findViewById(R.id.conv_listChat);
         if (listMsg.getAdapter() == null) {
@@ -83,7 +95,9 @@ public class ConversationPage extends Fragment {
     @Override
     public void onDestroyView() {
         super.onDestroyView();
-        ((MainActivity) getActivity()).getOnSmssUpdatedListeners().remove(onSmssUpdated);
+        MainActivity activity = (MainActivity) getActivity();
+        activity.onSmssUpdatedListeners.remove(onSmssUpdated);
+        activity.onContactUpdatedListeners.remove(onContactsUpdated);
     }
 
     private void renderMsgs(ArrayList<Sms> smss) {
