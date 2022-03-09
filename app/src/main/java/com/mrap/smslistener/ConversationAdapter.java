@@ -1,8 +1,6 @@
 package com.mrap.smslistener;
 
 import android.content.Context;
-import android.graphics.Color;
-import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -29,8 +27,13 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
     }
 
     public static class ConversationViewHolder extends RecyclerView.ViewHolder {
+        public TextView txtNum;
+        public TextView txtMsg;
+
         public ConversationViewHolder(@NonNull View itemView) {
             super(itemView);
+            txtNum = itemView.findViewById(R.id.idxrow_address);
+            txtMsg = itemView.findViewById(R.id.idxrow_content);
         }
     }
 
@@ -80,11 +83,8 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
 //                }
 //                viewSms.setLayoutParams(layoutParams);
 
-        TextView numTv = viewSms.findViewById(R.id.idxrow_address);
-        numTv.setText(activity.getContactName(sms.addr) + ", " + activity.niceDate(sms.date));
-
-        TextView msgTv = viewSms.findViewById(R.id.idxrow_content);
-        msgTv.setText(sms.body);
+        holder.txtNum.setText(activity.getContactName(sms.addr) + ", " + activity.niceDate(sms.date));
+        holder.txtMsg.setText(sms.body);
 
 //        if (sms.source == Sms.SOURCE_SQLITE) {
 //            viewSms.setBackground(new ColorDrawable(Color.parseColor("#FFDADA")));

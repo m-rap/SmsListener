@@ -14,6 +14,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -275,39 +276,17 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void loadContacts() {
-//        Uri uri = Uri.withAppendedPath(ContactsContract.PhoneLookup.CONTENT_FILTER_URI,
-//                Uri.encode(phoneNumbers[0]));
         Uri uri = ContactsContract.CommonDataKinds.Phone.CONTENT_URI;
-
-//        Log.d(TAG, "load contacts " + uri);
-
-//        String[] projection = new String[] { ContactsContract.PhoneLookup.DISPLAY_NAME };
 
         String[] projection = new String[] {
                 ContactsContract.CommonDataKinds.Phone.NUMBER,
                 ContactsContract.CommonDataKinds.Phone.DISPLAY_NAME
         };
-
-//        String contactName = phoneNumber;
         Cursor cursor = getContentResolver().query(uri, projection,
                 null, null, null);
 
-//        String numsStr = "";
-//        for (int i = 0; i < phoneNumbers.length; i++) {
-////            numsStr += "'" + phoneNumbers[i] + "'";
-//            numsStr += "?";
-//            if (i < phoneNumbers.length - 1) {
-//                numsStr += ", ";
-//            }
-//        }
-
-//        Cursor cursor = getContentResolver().query(uri, projection,
-//                ContactsContract.CommonDataKinds.Phone.NUMBER +
-//                        " IN (" + numsStr + ")", phoneNumbers, null);
-
         if (cursor != null) {
             if(cursor.moveToFirst()) {
-//                contactName = cursor.getString(0);
                 do {
                     contactNames.put(cursor.getString(0),
                             cursor.getString(1));
@@ -315,15 +294,41 @@ public class MainActivity extends AppCompatActivity {
             }
             cursor.close();
         }
-
-//        return contactName;
     }
 
-//    public void loadContacts(ArrayList<Sms> smss) {
-//        String[] nums = new String[smss.size()];
-//        for (int i = 0; i < nums.length; i++) {
-//            nums[i] = smss.get(i).addr;
-//        }
-//        loadContacts(nums);
-//    }
+    public ArrayList<MergedSmsSqliteHandler.SearchResult> searchSms(
+            String keyword, boolean[] abortSearch,
+            Callback<MergedSmsSqliteHandler.SearchResult> onEach) {
+        ArrayList<MergedSmsSqliteHandler.SearchResult> res = new ArrayList<>();
+        for (String addr : smssMap.keySet()) {
+            ArrayList<Sms> smss = smssMap.get(addr);
+            for (int i = 0; i < smss.size(); i++) {
+                Sms currSms = smss.get(i);
+                int i_ = i;
+                if (currSms.body.matches("(?i).*" + keyword + ".*")) {
+                    MergedSmsSqliteHandler.SearchResult searchResult = new
+                            MergedSmsSqliteHandler.SearchResult() {{
+                                sms = currSms;
+                                rowNum = i_;
+                            }};
+                    if (onEach != null) {
+                        onEach.onCallback(searchResult);
+                    }
+                    res.add(searchResult);
+                }
+                if (abortSearch[0]) {
+                    break;
+                }
+            }
+            if (abortSearch[0]) {
+                break;
+            }
+        }
+
+        SQLiteDatabase db = MergedSmsSqliteHandler.openDb(this);
+        res.addAll(MergedSmsSqliteHandler.searchSms(db, keyword, abortSearch, onEach)); // will raise duplicated data
+        db.close();
+
+        return res;
+    }
 }

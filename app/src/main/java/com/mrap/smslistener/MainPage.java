@@ -11,10 +11,10 @@ import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.Toast;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.appcompat.widget.SearchView;
 import androidx.appcompat.widget.Toolbar;
 import androidx.fragment.app.Fragment;
 import androidx.recyclerview.widget.RecyclerView;
@@ -31,6 +31,7 @@ public class MainPage extends Fragment {
 
     private static final String TAG = "MainPage";
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
+    private final ExecutorService searchExecutor = Executors.newSingleThreadExecutor();
     private Callback onSmssUpdated;
 
     private Parcelable recyclerViewState = null;
@@ -72,14 +73,14 @@ public class MainPage extends Fragment {
         };
         activity.onContactUpdatedListeners.add(onContactsUpdated);
 
-        RecyclerView recyclerView = view.findViewById(R.id.main_listConversation);
+        RecyclerView listConversation = view.findViewById(R.id.main_listConversation);
         if (recyclerViewState != null) {
-            recyclerView.getLayoutManager().onRestoreInstanceState(recyclerViewState);
+            listConversation.getLayoutManager().onRestoreInstanceState(recyclerViewState);
         } else {
-            recyclerView.setAdapter(new ConversationAdapter(activity, new ArrayList<>()));
+            listConversation.setAdapter(new ConversationAdapter(activity, new ArrayList<>()));
         }
 
-        recyclerView.addOnScrollListener(new RecyclerView.OnScrollListener() {
+        listConversation.addOnScrollListener(new RecyclerView.OnScrollListener() {
             @Override
             public void onScrollStateChanged(RecyclerView recyclerView, int newState) {
                 super.onScrollStateChanged(recyclerView, newState);
@@ -89,6 +90,9 @@ public class MainPage extends Fragment {
                 }
             }
         });
+
+        RecyclerView listSearchResult = view.findViewById(R.id.main_listSearchResult);
+        listSearchResult.setAdapter(new SearchResultAdapter(activity));
 
         executorService.submit(() -> {
             checkOrRefresh();
@@ -100,6 +104,54 @@ public class MainPage extends Fragment {
         super.onCreateOptionsMenu(menu, inflater);
         Log.d(TAG, "onCreateOptionsMenu");
         inflater.inflate(R.menu.main, menu);
+
+        RecyclerView listSearchResult = getView().findViewById(R.id.main_listSearchResult);
+        RecyclerView listConversation = getView().findViewById(R.id.main_listConversation);
+
+        MenuItem searchMenuItem = menu.findItem(R.id.main_searchMenu);
+        SearchView searchView = (SearchView) searchMenuItem.getActionView();
+        boolean[] abortSearch = new boolean[] {false};
+        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+            @Override
+            public boolean onQueryTextSubmit(String query) {
+                return false;
+            }
+            @Override
+            public boolean onQueryTextChange(String newText) {
+                MainActivity activity = (MainActivity) getActivity();
+                SearchResultAdapter searchResultAdapter = (SearchResultAdapter) listSearchResult.getAdapter();
+                abortSearch[0] = true;
+                searchExecutor.submit(() -> {
+                    activity.runOnUiThread(() -> {
+                        searchResultAdapter.clearResults();
+                    });
+                    abortSearch[0] = false;
+                });
+                if (!newText.isEmpty()) {
+                    searchExecutor.submit(() -> {
+                        activity.searchSms(newText, abortSearch, result -> {
+                            searchResultAdapter.appendResult(result);
+                        });
+                    });
+                }
+                return false;
+            }
+        });
+        searchMenuItem.setOnActionExpandListener(new MenuItem.OnActionExpandListener() {
+            @Override
+            public boolean onMenuItemActionExpand(MenuItem item) {
+                listSearchResult.setVisibility(View.VISIBLE);
+                listConversation.setVisibility(View.GONE);
+                return true;
+            }
+
+            @Override
+            public boolean onMenuItemActionCollapse(MenuItem item) {
+                listSearchResult.setVisibility(View.GONE);
+                listConversation.setVisibility(View.VISIBLE);
+                return true;
+            }
+        });
     }
 
     @Override

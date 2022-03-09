@@ -8,15 +8,18 @@ import android.database.sqlite.SQLiteStatement;
 import android.provider.Telephony;
 import android.util.Log;
 
-import com.mrap.smslistener.MainActivity;
-
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Date;
+import java.util.HashMap;
 import java.util.HashSet;
 
 public class MergedSmsSqliteHandler extends SqliteHandler {
     private static final String TAG = "MergdSmsSqliteHndlr";
+
+    public static class SearchResult {
+        public Sms sms;
+        public int rowNum;
+    }
 
     private static final String[] createSqls = {"" +
             "CREATE TABLE IF NOT EXISTS sms (\n" +
@@ -215,6 +218,12 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
     public static ArrayList<Sms> getSmss(
             SQLiteDatabase mergedSmsDb, String selection, String orderBy, int offset, int limit,
             Callback<Sms> onEach) {
+        return getSmss(mergedSmsDb, selection, orderBy, offset, limit, new boolean[] {false}, onEach);
+    }
+
+    public static ArrayList<Sms> getSmss(
+            SQLiteDatabase mergedSmsDb, String selection, String orderBy, int offset, int limit,
+            boolean[] abort, Callback<Sms> onEach) {
         synchronized (mergedSmsLock) {
             ArrayList<Sms> res = new ArrayList<>();
             String limitStr = Sms.createLimit(offset, limit, true);
@@ -255,6 +264,9 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
                     onEach.onCallback(sms);
                 }
                 res.add(sms);
+                if (abort[0]) {
+                    break;
+                }
             } while (c.moveToNext());
             c.close();
 
@@ -359,5 +371,32 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
         File file = new File(context.getExternalFilesDir(null) + "/" +
                 mergedSmsRelPath);
         return file.exists();
+    }
+
+    public static ArrayList<SearchResult> searchSms(
+            SQLiteDatabase mergedSmsDb, String keyword,
+            boolean[] abortSearch, Callback<SearchResult> onEach) {
+        ArrayList<SearchResult> res = new ArrayList<>();
+        HashMap<String, Integer> rowNums = new HashMap<>();
+        getSmss(mergedSmsDb, null, null, -1, -1, abortSearch, currSms -> {
+            Integer rowNum_ = rowNums.get(currSms.addr);
+            if (rowNum_ == null) {
+                rowNum_ = 0;
+            }
+            Integer rowNum__ = rowNum_;
+            if (currSms.body.matches("(?i).*" + keyword + ".*")) {
+                SearchResult searchRes = new SearchResult() {{
+                    sms = currSms;
+                    rowNum = rowNum__;
+                }};
+                if (onEach != null) {
+                    onEach.onCallback(searchRes);
+                }
+                res.add(searchRes);
+            }
+            rowNum_++;
+            rowNums.put(currSms.addr, rowNum_);
+        });
+        return res;
     }
 }
