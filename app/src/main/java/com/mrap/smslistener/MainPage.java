@@ -129,6 +129,7 @@ public class MainPage extends Fragment {
                 });
                 if (!newText.isEmpty()) {
                     searchExecutor.submit(() -> {
+                        searchResultAdapter.setKeyword(newText);
                         activity.searchSms(newText, abortSearch, result -> {
                             searchResultAdapter.appendResult(result);
                         });

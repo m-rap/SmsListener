@@ -38,6 +38,8 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -300,16 +302,24 @@ public class MainActivity extends AppCompatActivity {
             String keyword, boolean[] abortSearch,
             Callback<MergedSmsSqliteHandler.SearchResult> onEach) {
         ArrayList<MergedSmsSqliteHandler.SearchResult> res = new ArrayList<>();
+
+        Pattern pattern = Pattern.compile(keyword, Pattern.UNICODE_CASE |
+                Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
         for (String addr : smssMap.keySet()) {
             ArrayList<Sms> smss = smssMap.get(addr);
             for (int i = 0; i < smss.size(); i++) {
                 Sms currSms = smss.get(i);
                 int i_ = i;
-                if (currSms.body.matches("(?i).*" + keyword + ".*")) {
+
+                Matcher matcher = pattern.matcher(currSms.body);
+                if (matcher.find()) {
                     MergedSmsSqliteHandler.SearchResult searchResult = new
                             MergedSmsSqliteHandler.SearchResult() {{
                                 sms = currSms;
                                 rowNum = i_;
+                                charStartPos = matcher.start();
+                                charEndPos = matcher.end();
                             }};
                     if (onEach != null) {
                         onEach.onCallback(searchResult);

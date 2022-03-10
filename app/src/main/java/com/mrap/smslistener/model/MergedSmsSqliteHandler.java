@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class MergedSmsSqliteHandler extends SqliteHandler {
@@ -21,6 +22,8 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
     public static class SearchResult {
         public Sms sms;
         public int rowNum;
+        public int charStartPos;
+        public int charEndPos;
     }
 
     private static final String[] createSqls = {"" +
@@ -391,7 +394,7 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
 
         // "(?is).*" + keyword + ".*" // ini yang bener (DOTALL)
         // "(?im).*" + keyword + ".*"
-        Pattern pattern = Pattern.compile(".*" + keyword + ".*",
+        Pattern pattern = Pattern.compile(keyword,
                 Pattern.UNICODE_CASE | Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
         getSmss(mergedSmsDb, null, null, -1, -1, abortSearch, currSms -> {
@@ -404,10 +407,13 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
 ////            String part = currSms.body.split("\n")[0].substring(0, 20);
 //            String part = currSms.body;
 
-            if (pattern.matcher(currSms.body).matches()) {
+            Matcher matcher = pattern.matcher(currSms.body);
+            if (matcher.find()) {
                 SearchResult searchRes = new SearchResult() {{
                     sms = currSms;
                     rowNum = rowNum2_;
+                    charStartPos = matcher.start();
+                    charEndPos = matcher.end();
                 }};
                 if (onEach != null) {
                     onEach.onCallback(searchRes);
