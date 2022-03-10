@@ -229,7 +229,7 @@ public class MainActivity extends AppCompatActivity {
     private SimpleDateFormat sdfSameYear = new SimpleDateFormat("MMM d");
     private SimpleDateFormat sdfDiffYear = new SimpleDateFormat("MMM d, yyyy");
 
-    public String niceDate(long date) {
+    public String niceDate(long date, boolean useTime) {
         Date now = new Date();
 
         Calendar cal = Calendar.getInstance();
@@ -244,9 +244,9 @@ public class MainActivity extends AppCompatActivity {
         if (dayOfMonth == nowDayOfMonth) {
             return sdfSameDay.format(date);
         } else if (year == nowYear) {
-            return sdfSameYear.format(date);
+            return sdfSameYear.format(date) + (useTime ? ", " + sdfSameDay.format(date) : "");
         } else {
-            return sdfDiffYear.format(date);
+            return sdfDiffYear.format(date) + (useTime ? ", " + sdfSameDay.format(date) : "");
         }
     }
 

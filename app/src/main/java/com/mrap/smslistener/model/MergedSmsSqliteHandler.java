@@ -10,8 +10,10 @@ import android.util.Log;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.regex.Pattern;
 
 public class MergedSmsSqliteHandler extends SqliteHandler {
     private static final String TAG = "MergdSmsSqliteHndlr";
@@ -378,23 +380,55 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
             boolean[] abortSearch, Callback<SearchResult> onEach) {
         ArrayList<SearchResult> res = new ArrayList<>();
         HashMap<String, Integer> rowNums = new HashMap<>();
+
+//        int[] rowNumAll = new int[] {0};
+
+//        Calendar cal = Calendar.getInstance();
+//        cal.set(2022, 2, 7, 21, 0, 0);
+//        long d7mar23 = cal.getTimeInMillis();
+//        cal.set(2022, 2, 7, 0, 0, 0);
+//        long d7mar0 = cal.getTimeInMillis();
+
+        // "(?is).*" + keyword + ".*" // ini yang bener (DOTALL)
+        // "(?im).*" + keyword + ".*"
+        Pattern pattern = Pattern.compile(".*" + keyword + ".*",
+                Pattern.UNICODE_CASE | Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+
         getSmss(mergedSmsDb, null, null, -1, -1, abortSearch, currSms -> {
             Integer rowNum_ = rowNums.get(currSms.addr);
             if (rowNum_ == null) {
                 rowNum_ = 0;
             }
-            Integer rowNum__ = rowNum_;
-            if (currSms.body.matches("(?i).*" + keyword + ".*")) {
+            Integer rowNum2_ = rowNum_;
+
+////            String part = currSms.body.split("\n")[0].substring(0, 20);
+//            String part = currSms.body;
+
+            if (pattern.matcher(currSms.body).matches()) {
                 SearchResult searchRes = new SearchResult() {{
                     sms = currSms;
-                    rowNum = rowNum__;
+                    rowNum = rowNum2_;
                 }};
                 if (onEach != null) {
                     onEach.onCallback(searchRes);
                 }
                 res.add(searchRes);
+////                if (rowNumAll[0] < 20) {
+//                if (currSms.date >= d7mar0 && currSms.date <= d7mar23) {
+//                    Log.d(TAG, part + ": match " +
+//                            keyword);
+//                }
             }
+//            else {
+////                if (rowNumAll[0] < 20) {
+//                if (currSms.date >= d7mar0 && currSms.date <= d7mar23) {
+//                    Log.d(TAG, part + ": not match " +
+//                            keyword);
+//                }
+//            }
+
             rowNum_++;
+//            rowNumAll[0]++;
             rowNums.put(currSms.addr, rowNum_);
         });
         return res;

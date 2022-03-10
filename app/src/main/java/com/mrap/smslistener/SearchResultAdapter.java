@@ -34,7 +34,7 @@ public class SearchResultAdapter extends RecyclerView.Adapter<ConversationAdapte
     public void onBindViewHolder(@NonNull ConversationAdapter.ConversationViewHolder holder, int position) {
         MergedSmsSqliteHandler.SearchResult searchResult = searchResults.get(position);
         Sms sms = searchResult.sms;
-        holder.txtNum.setText(activity.getContactName(sms.addr) + ", " + activity.niceDate(sms.date));
+        holder.txtNum.setText(activity.getContactName(sms.addr) + ", " + activity.niceDate(sms.date, false));
         String content;
 //        sms.body.indexOf(keyword);
         content = sms.body;

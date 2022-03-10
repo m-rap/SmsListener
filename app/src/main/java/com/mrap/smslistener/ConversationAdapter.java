@@ -83,7 +83,7 @@ public class ConversationAdapter extends RecyclerView.Adapter<ConversationAdapte
 //                }
 //                viewSms.setLayoutParams(layoutParams);
 
-        holder.txtNum.setText(activity.getContactName(sms.addr) + ", " + activity.niceDate(sms.date));
+        holder.txtNum.setText(activity.getContactName(sms.addr) + ", " + activity.niceDate(sms.date, false));
         holder.txtMsg.setText(sms.body);
 
 //        if (sms.source == Sms.SOURCE_SQLITE) {
