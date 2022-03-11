@@ -122,14 +122,11 @@ public class MainPage extends Fragment {
                 SearchResultAdapter searchResultAdapter = (SearchResultAdapter) listSearchResult.getAdapter();
                 abortSearch[0] = true;
                 searchExecutor.submit(() -> {
-                    activity.runOnUiThread(() -> {
-                        searchResultAdapter.clearResults();
-                    });
+                    searchResultAdapter.clearResults();
                     abortSearch[0] = false;
                 });
                 if (!newText.isEmpty()) {
                     searchExecutor.submit(() -> {
-                        searchResultAdapter.setKeyword(newText);
                         activity.searchSms(newText, abortSearch, result -> {
                             searchResultAdapter.appendResult(result);
                         });

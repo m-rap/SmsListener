@@ -1,8 +1,5 @@
 package com.mrap.smslistener;
 
-import android.content.BroadcastReceiver;
-import android.content.Context;
-import android.content.Intent;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.os.Parcelable;
@@ -31,9 +28,11 @@ public class ConversationPage extends Fragment {
     private static final String TAG = "ChatPage";
     private final ExecutorService executorService = Executors.newSingleThreadExecutor();
     private String addr;
+    private int jumpToPos;
     private Callback onSmssUpdated;
     private Callback onContactsUpdated;
     private Parcelable recyclerViewState = null;
+    private boolean willJump = false;
 
     @Nullable
     @Override
@@ -45,6 +44,10 @@ public class ConversationPage extends Fragment {
     public void onViewCreated(@NonNull View view, @Nullable Bundle savedInstanceState) {
         MainActivity activity = (MainActivity) getActivity();
         addr = getArguments().getString("addr");
+        jumpToPos = getArguments().getInt("jumpToPos", -1);
+        if (jumpToPos > 0) {
+            willJump = true;
+        }
 
         Toolbar toolbar = view.findViewById(R.id.conv_toolbar);
         toolbar.setTitle(activity.getContactName(addr));
@@ -122,6 +125,12 @@ public class ConversationPage extends Fragment {
                 } else {
                     listMsg.scrollToPosition(adapter.getItemCount() - 1);
                 }
+
+                if (willJump) {
+                    listMsg.scrollToPosition(smss.size() - 1 - jumpToPos);
+                    willJump = false;
+                }
+
                 container.setVisibility(View.VISIBLE);
             });
         });
@@ -171,6 +180,12 @@ public class ConversationPage extends Fragment {
             currPage = 0;
         }
         int limit = MainActivity.ROW_PER_PAGE;
+        if (jumpToPos > 0) {
+            int jumpPage = jumpToPos / limit;
+            if (currPage < jumpPage) {
+                currPage = jumpPage;
+            }
+        }
 
         synchronized (smssMap) {
             SQLiteDatabase smsDb = MergedSmsSqliteHandler.openDb(activity);
