@@ -48,6 +48,8 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
     private static final String tmpMergedSmsRelPath = "mergedsms.tmp.db";
     private static boolean syncRunning = false;
 
+    private static final boolean isSearchAborted[] = new boolean[] { false };
+
     public static SQLiteDatabase openDb(Context context) {
         return openDb(context, context.getExternalFilesDir(null) + "/" +
                 mergedSmsRelPath, createSqls);
@@ -378,9 +380,16 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
         return file.exists();
     }
 
+    public static void abortSearch() {
+        isSearchAborted[0] = true;
+    }
+
+    public static void prepareSearch() {
+        isSearchAborted[0] = false;
+    }
+
     public static ArrayList<SearchResult> searchSms(
-            SQLiteDatabase mergedSmsDb, String keyword,
-            boolean[] abortSearch, Callback<SearchResult> onEach) {
+            SQLiteDatabase mergedSmsDb, String keyword, Callback<SearchResult> onEach) {
         ArrayList<SearchResult> res = new ArrayList<>();
         HashMap<String, Integer> rowNums = new HashMap<>();
 
@@ -397,7 +406,7 @@ public class MergedSmsSqliteHandler extends SqliteHandler {
         Pattern pattern = Pattern.compile(keyword,
                 Pattern.UNICODE_CASE | Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
-        getSmss(mergedSmsDb, null, null, -1, -1, abortSearch, currSms -> {
+        getSmss(mergedSmsDb, null, null, -1, -1, isSearchAborted, currSms -> {
             Integer rowNum_ = rowNums.get(currSms.addr);
             if (rowNum_ == null) {
                 rowNum_ = 0;

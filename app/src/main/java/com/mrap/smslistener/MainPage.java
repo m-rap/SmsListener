@@ -110,7 +110,6 @@ public class MainPage extends Fragment {
 
         MenuItem searchMenuItem = menu.findItem(R.id.main_searchMenu);
         SearchView searchView = (SearchView) searchMenuItem.getActionView();
-        boolean[] abortSearch = new boolean[] {false};
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
@@ -120,14 +119,14 @@ public class MainPage extends Fragment {
             public boolean onQueryTextChange(String newText) {
                 MainActivity activity = (MainActivity) getActivity();
                 SearchResultAdapter searchResultAdapter = (SearchResultAdapter) listSearchResult.getAdapter();
-                abortSearch[0] = true;
+                activity.abortSearch();
                 searchExecutor.submit(() -> {
                     searchResultAdapter.clearResults();
-                    abortSearch[0] = false;
                 });
                 if (!newText.isEmpty()) {
                     searchExecutor.submit(() -> {
-                        activity.searchSms(newText, abortSearch, result -> {
+                        activity.prepareSearch();
+                        activity.searchSms(newText, result -> {
                             searchResultAdapter.appendResult(result);
                         });
                     });

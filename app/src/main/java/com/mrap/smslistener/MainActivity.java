@@ -45,6 +45,11 @@ public class MainActivity extends AppCompatActivity {
 
     private static final String TAG = "MainActivity";
 
+    public static class ContactSearchResult {
+        public String number;
+        public String name;
+    }
+
     private static final int REQCODE_REQPERM = 0;
     public static final int ROW_PER_PAGE = 50;
     public static SimpleDateFormat SDF = new SimpleDateFormat("yyyyMMdd HH:mm:ss");
@@ -53,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
     private final HashMap<String, ArrayList<Sms>> smssMap = new HashMap<>();
     public int lastSmsCurrPage = 0;
     private HashMap<String, Integer> smsMapCurrPage = new HashMap<>();
-    private HashMap<String, String> contactNames = new HashMap<>();
+    private HashMap<String, String> contactNames = new HashMap<>(); // number,name pair
     private SyncService syncService = null;
     private boolean receiverIsRegistered = false;
     private boolean navigatedToMain = false;
@@ -61,6 +66,8 @@ public class MainActivity extends AppCompatActivity {
 
     public final ArrayList<Callback> onSmssUpdatedListeners = new ArrayList<>();
     public final ArrayList<Callback> onContactUpdatedListeners = new ArrayList<>();
+
+    private boolean isSearchAborted = false;
 
     private final BroadcastReceiver smsUIReceiver = new BroadcastReceiver() {
         @Override
@@ -298,11 +305,63 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    public ArrayList<MergedSmsSqliteHandler.SearchResult> searchSms(
-            String keyword, boolean[] abortSearch,
-            Callback<MergedSmsSqliteHandler.SearchResult> onEach) {
-        ArrayList<MergedSmsSqliteHandler.SearchResult> res = new ArrayList<>();
+    public void abortSearch() {
+        isSearchAborted = true;
+        MergedSmsSqliteHandler.abortSearch();
+    }
 
+    public void prepareSearch() {
+        isSearchAborted = false;
+        MergedSmsSqliteHandler.prepareSearch();
+    }
+
+    public ArrayList<ContactSearchResult> searchContact(
+            String keyword, Callback<ContactSearchResult> onEach) {
+
+        ArrayList<ContactSearchResult> res = new ArrayList<>();
+        Pattern pattern = Pattern.compile(keyword, Pattern.UNICODE_CASE |
+                Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
+        for (String num_ : contactNames.keySet()) {
+            String name_ = contactNames.get(num_);
+
+            ContactSearchResult result = null;
+
+            Matcher matcherNum = pattern.matcher(num_);
+            Matcher matcherName = pattern.matcher(name_);
+
+            if (matcherNum.find()) {
+                result = new ContactSearchResult() {{
+                    number = num_;
+                    name = name_;
+                }};
+            }
+
+            if (result == null && matcherName.find()) {
+                result = new ContactSearchResult() {{
+                    number = num_;
+                    name = name_;
+                }};
+            }
+
+            if (result != null) {
+                if (onEach != null) {
+                    onEach.onCallback(result);
+                }
+                res.add(result);
+            }
+
+            if (isSearchAborted) {
+                break;
+            }
+        }
+        return res;
+    }
+
+    public ArrayList<MergedSmsSqliteHandler.SearchResult> searchSms(
+            String keyword,
+            Callback<MergedSmsSqliteHandler.SearchResult> onEach) {
+
+        ArrayList<MergedSmsSqliteHandler.SearchResult> res = new ArrayList<>();
         Pattern pattern = Pattern.compile(keyword, Pattern.UNICODE_CASE |
                 Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
 
@@ -326,17 +385,21 @@ public class MainActivity extends AppCompatActivity {
                     }
                     res.add(searchResult);
                 }
-                if (abortSearch[0]) {
+                if (isSearchAborted) {
                     break;
                 }
             }
-            if (abortSearch[0]) {
+            if (isSearchAborted) {
                 break;
             }
         }
 
+        if (isSearchAborted) {
+            return res;
+        }
+
         SQLiteDatabase db = MergedSmsSqliteHandler.openDb(this);
-        res.addAll(MergedSmsSqliteHandler.searchSms(db, keyword, abortSearch, onEach)); // will raise duplicated data
+        res.addAll(MergedSmsSqliteHandler.searchSms(db, keyword, onEach)); // will raise duplicated data
         db.close();
 
         return res;
